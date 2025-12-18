@@ -1,0 +1,8 @@
+
+{
+  "name": "OpenTranscribe",
+  "description": "A high-performance MP3 transcription platform powered by advanced AI. Upload MP3 files to get instant, accurate transcriptions.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
