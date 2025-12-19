@@ -1,19 +1,35 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 import whisper
 import tempfile
 import os
 from typing import Optional
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="OpenTranscribe API")
 
-# Configure CORS
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    logger.info(f"Origin header: {request.headers.get('origin', 'None')}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
+
+# Configure CORS - explicitly allow localhost origins and all origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],  # Allow all origins for maximum compatibility
     allow_credentials=False,  # Must be False when allow_origins=["*"]
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Load Whisper model (cached after first load)
@@ -101,5 +117,14 @@ async def transcribe_audio(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print("=" * 50)
+    print("Starting OpenTranscribe API Server")
+    print("=" * 50)
+    print("Server will be available at:")
+    print("  - http://localhost:8000")
+    print("  - http://127.0.0.1:8000")
+    print("  - API Docs: http://localhost:8000/docs")
+    print("  - Health Check: http://localhost:8000/health")
+    print("=" * 50)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
