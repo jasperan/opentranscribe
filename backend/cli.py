@@ -10,6 +10,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich import print as rprint
 from rich.progress import Progress, SpinnerColumn, TextColumn
+import questionary
 
 console = Console()
 
@@ -38,6 +39,10 @@ def run_server():
 
 def transcribe_file():
     print_header()
+    # No questionary choice here mainly because it's a file path input.
+    # But we can perhaps offer a file browser? No, stick to Prompt.ask for now but maybe style it?
+    # Actually, let's keep Prompt.ask for file paths as questionary.path is not always available/reliable without completion setups.
+    
     console.print("[bold yellow]Transcribe Audio File[/bold yellow]")
     
     file_path = Prompt.ask("Enter path to audio file")
@@ -81,7 +86,25 @@ def transcribe_file():
                 
                 # Transcribe chunk
                 result = model.transcribe(chunk_path)
-                full_text += result["text"] + " "
+                
+                # Process segments for better formatting
+                chunk_start_seconds = i * (chunk_length_ms / 1000)
+                
+                if "segments" in result:
+                    for segment in result["segments"]:
+                        start_time = segment["start"] + chunk_start_seconds
+                        text = segment["text"].strip()
+                        
+                        # Format timestamp [MM:SS]
+                        minutes = int(start_time // 60)
+                        seconds = int(start_time % 60)
+                        timestamp = f"[{minutes:02d}:{seconds:02d}]"
+                        
+                        formatted_line = f"{timestamp} {text}\n"
+                        full_text += formatted_line
+                else:
+                    # Fallback if no segments
+                    full_text += result["text"] + "\n"
                 
                 # Clean up
                 os.remove(chunk_path)
@@ -109,16 +132,19 @@ def transcribe_file():
 def main_menu():
     while True:
         print_header()
-        console.print("[bold]Select a Task:[/bold]")
         
-        table = Table(show_header=False, box=None)
-        table.add_row("[1]", "Start API Server", style="green")
-        table.add_row("[2]", "Transcribe Audio File (Offline)", style="cyan")
-        table.add_row("[0]", "Exit", style="red")
+        choices = [
+            questionary.Choice("Start API Server", value="1"),
+            questionary.Choice("Transcribe Audio File (Offline)", value="2"),
+            questionary.Separator(),
+            questionary.Choice("Exit", value="0")
+        ]
         
-        console.print(table)
-        
-        choice = Prompt.ask("\nEnter choice", choices=["1", "2", "0"], default="1")
+        choice = questionary.select(
+            "Select a Task:",
+            choices=choices,
+            use_arrow_keys=True
+        ).ask()
         
         if choice == "1":
             run_server()
@@ -126,7 +152,7 @@ def main_menu():
         elif choice == "2":
             transcribe_file()
             input("\nPress Enter to continue...")
-        elif choice == "0":
+        elif not choice or choice == "0":
             console.print("[bold]Goodbye![/bold]")
             sys.exit(0)
 

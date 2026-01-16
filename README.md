@@ -64,7 +64,7 @@ The app will open at `http://localhost:5173`
 ## CLI Usage (New)
 
 You can also use the interactive CLI for:
-- **Offline Transcription**: Uses robust OpenAI Whisper models (tested with `base` and `tiny`) for high-quality offline processing.
+- **Offline Transcription**: Uses robust OpenAI Whisper models (tested with `base` and `tiny`) for high-quality offline processing. Now includes timestamped, formatted output for better readability.
 - **Start API Server**: Launch the backend API server.
 
 ```bash
