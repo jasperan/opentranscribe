@@ -61,6 +61,28 @@ The app will open at `http://localhost:5173`
 3. Wait for transcription (first request may take longer as the model loads)
 4. Copy or view the transcribed text
 
+## CLI Usage (New)
+
+You can also use the interactive CLI for:
+- **Offline Transcription**: Uses robust OpenAI Whisper models (tested with `base` and `tiny`) for high-quality offline processing.
+- **Start API Server**: Launch the backend API server.
+
+```bash
+python backend/cli.py
+```
+
+```
+    ╔════════════════════════════════════════════════════════════════╗
+    ║                 OPENTRANSCRIBE CLI                             ║
+    ║             Offline Audio Transcription Tool                   ║
+    ╚════════════════════════════════════════════════════════════════╝
+
+Select a Task:
+ [1]  Start API Server                
+ [2]  Transcribe Audio File (Offline) 
+ [0]  Exit                            
+```
+
 ## API Endpoints
 
 - `GET /` - API status
