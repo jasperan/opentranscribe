@@ -1,9 +1,39 @@
-fastapi==0.115.0
-uvicorn[standard]==0.32.0
-python-multipart==0.0.12
-openai-whisper==20250625
+# OpenTranscribe - Multi-Model STT
+# All-in-one installation
+
+# Core API
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+
+# STT Models
+# 1. Faster Whisper (recommended - 4x faster, same accuracy)
+faster-whisper>=1.0.0
+
+# 2. OpenAI Whisper (original)
+openai-whisper>=20250625
+
+# 3. Vosk (lightweight, streaming)
+vosk>=0.3.45
+
+# 4. whisper.cpp (CPU optimized)
+pywhispercpp>=1.2.0
+
+# 5. Wav2Vec2 (HuggingFace)
+transformers>=4.40.0
+
+# Deep learning backends
 torch>=2.0.0
 torchaudio>=2.0.0
 
-rich
-questionary
+# GPU support (NVIDIA CUDA)
+nvidia-cublas-cu12
+nvidia-cudnn-cu12
+
+# CLI and utilities
+rich>=13.0.0
+questionary>=2.0.0
+pydub>=0.25.0
+
+# Audio processing
+soundfile>=0.12.0

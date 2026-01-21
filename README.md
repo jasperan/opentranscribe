@@ -1,19 +1,33 @@
 # OpenTranscribe
 
-A React app for transcribing MP3 audio files using OpenAI's Whisper model via a Python backend API.
+A React app for transcribing MP3 audio files using multiple open-source STT models via a Python backend API.
 
 ## Features
+
 - Drag-and-drop MP3 upload
-- High-accuracy transcription with Whisper (base model)
+- **5 STT Models** - Choose from Faster Whisper, OpenAI Whisper, Vosk, whisper.cpp, and Wav2Vec2
+- **Model Comparison** - Compare transcription results across models with diff highlighting
+- **Standalone Mode** - API server starts automatically with CLI
 - Multi-language support: English, Spanish, and auto-detect
-- Verbatim text output
+- Verbatim text output with timestamps
 - Fast API backend with FastAPI
+
+## Supported Models
+
+| Model | Speed | Accuracy | GPU | Best For |
+|-------|-------|----------|-----|----------|
+| **Faster Whisper** | ⚡ Fast | ★★★★★ | Optional | Default choice, best balance |
+| **OpenAI Whisper** | Medium | ★★★★★ | Optional | Original reference |
+| **Vosk** | ⚡⚡ Fastest | ★★★☆☆ | No | Real-time, embedded |
+| **whisper.cpp** | Slow | ★★★★★ | No | CPU-only systems |
+| **Wav2Vec2** | Medium | ★★★☆☆ | Optional | Research, fine-tuning |
 
 ## Prerequisites
 
 - **Node.js** (v18+)
-- **Python** (v3.8+)
+- **Python** (v3.10+)
 - **pip** (Python package manager)
+- **NVIDIA GPU** (optional, for faster transcription)
 
 ## Setup
 
@@ -26,68 +40,92 @@ npm install
 ### 2. Install Python Backend Dependencies
 
 ```bash
-# Create virtual environment (recommended)
-python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
+# Install all dependencies (includes all STT models)
 pip install -r requirements.txt
 ```
 
 ### 3. Run the Application
 
-**Terminal 1 - Start Python Backend:**
+**Standalone CLI (Recommended):**
 ```bash
 cd backend
-python main.py
+python cli.py
 ```
-The API will run on `http://localhost:8000`
 
-**Terminal 2 - Start Frontend:**
+The CLI automatically starts the API server in the background. No separate terminal needed!
+
+```
+    ╔════════════════════════════════════════════════════════════════╗
+    ║                 OPENTRANSCRIBE CLI                             ║
+    ║           Multi-Model Audio Transcription Tool                 ║
+    ║                                                                ║
+    ║   API Server: ● Running                                        ║
+    ╚════════════════════════════════════════════════════════════════╝
+
+Select a Task:
+ [1]  Transcribe Audio File
+ [2]  Compare All Models
+ [3]  List Available Models
+ ────
+ [4]  Manage API Server
+ ────
+ [0]  Exit
+```
+
+**Frontend (optional):**
 ```bash
 npm run dev
 ```
 The app will open at `http://localhost:5173`
 
-## Usage
+## CLI Usage
 
-1. Open the app in your browser
-2. Drag and drop an MP3 file or click to upload
-3. Wait for transcription (first request may take longer as the model loads)
-4. Copy or view the transcribed text
+The interactive CLI provides:
+- **Transcribe Audio File** - Select any model and transcribe
+- **Compare All Models** - Run multiple models and see differences
+- **List Available Models** - See which models are installed
+- **Manage API Server** - Start/stop/restart the server
 
-## CLI Usage (New)
+### Model Comparison
 
-You can also use the interactive CLI for:
-- **Offline Transcription**: Uses robust OpenAI Whisper models (tested with `base` and `tiny`) for high-quality offline processing. Now includes timestamped, formatted output for better readability.
-- **Start API Server**: Launch the backend API server.
-
-```bash
-python backend/cli.py
-```
+The comparison feature runs your audio through multiple models and shows word-level differences:
 
 ```
-    ╔════════════════════════════════════════════════════════════════╗
-    ║                 OPENTRANSCRIBE CLI                             ║
-    ║             Offline Audio Transcription Tool                   ║
-    ╚════════════════════════════════════════════════════════════════╝
+═══════════════════════════════════════════════════════════════════════
+                      MODEL COMPARISON RESULTS
+═══════════════════════════════════════════════════════════════════════
 
-Select a Task:
- [1]  Start API Server                
- [2]  Transcribe Audio File (Offline) 
- [0]  Exit                            
+┌──────────────────┬─────────┬─────────┐
+│ Model            │ Time    │ Match   │
+├──────────────────┼─────────┼─────────┤
+│ ● Faster Whisper │ 8.74s   │ baseline│
+│ ● OpenAI Whisper │ 8.58s   │ 88%     │
+│ ● Vosk           │ 26.39s  │ 75%     │
+└──────────────────┴─────────┴─────────┘
+
+DIFFERENCES FOUND (130 word positions differ):
+────────────────────────────────────────────────────────────────────────
+
+Word #33: "None"
+  ├─ Baseline:       None
+  ├─ OpenAI Whisper: the
+  └─ Vosk:           the         ✓
 ```
 
 ## API Endpoints
 
+The API server runs automatically at `http://127.0.0.1:8000`
+
 - `GET /` - API status
 - `GET /health` - Health check
-- `POST /transcribe` - Transcribe audio file (multipart/form-data)
+- `GET /models` - List available STT models
+- `POST /transcribe` - Transcribe audio file
+  - `file`: Audio file (multipart/form-data)
+  - `model`: Model ID (optional, default: faster-whisper)
+  - `language`: Language code (optional, default: auto)
+- `POST /compare` - Compare multiple models
+  - `file`: Audio file
+  - `models`: Comma-separated model IDs (optional, default: all)
 
 ## Build for Production
 
@@ -95,7 +133,7 @@ Select a Task:
 ```bash
 npm run build
 ```
-Deploy the `dist/` folder` to any static host.
+Deploy the `dist/` folder to any static host.
 
 ### Backend
 The backend can be deployed to any Python hosting service:
@@ -106,12 +144,21 @@ The backend can be deployed to any Python hosting service:
 **Note:** Update `VITE_API_URL` environment variable in the frontend to point to your deployed backend URL.
 
 ## Supported Formats & Languages
+
 - **Audio Formats**: MP3, WAV, and other audio formats supported by Whisper
-- **Languages**: 
+- **Languages**:
   - English (en)
   - Spanish (es)
   - Auto-detect (automatically detects the language)
 
 ## Model Information
-- Uses OpenAI Whisper `base` model (~150MB download on first use)
-- Model is cached after first load for faster subsequent requests
+
+All models are **free and open-source** - no API keys required:
+
+- **Faster Whisper**: CTranslate2 reimplementation, 4x faster
+- **OpenAI Whisper**: Original model (~150MB for base)
+- **Vosk**: Lightweight Kaldi-based (~50MB models)
+- **whisper.cpp**: C++ implementation for CPU
+- **Wav2Vec2**: HuggingFace Transformers
+
+Models are cached after first download in `~/.cache/` directories.
