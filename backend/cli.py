@@ -23,6 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from models import get_model, list_models, get_available_models, get_default_model
 from models.base import TranscriptionResult
 from diff import DiffEngine
+from streaming import VoskStreamingTranscriber
+from streaming.vosk_streaming import StreamingConfig, RecordingMode, OutputMode
 
 console = Console()
 
@@ -390,6 +392,240 @@ def compare_models():
         console.print(f"[green]Saved to {output_path}[/green]")
 
 
+def live_transcription():
+    """Real-time voice transcription using microphone."""
+    print_header()
+    console.print("[bold yellow]Live Voice Transcription[/bold yellow]\n")
+
+    # Check if sounddevice is available
+    try:
+        import sounddevice as sd
+        import numpy as np
+    except ImportError:
+        console.print("[red]Error: sounddevice is not installed.[/red]")
+        console.print("[dim]Install with: pip install sounddevice numpy[/dim]")
+        return
+
+    # Check if Vosk is available
+    transcriber = VoskStreamingTranscriber()
+    if not transcriber.is_available():
+        console.print("[red]Error: Vosk is not installed.[/red]")
+        console.print("[dim]Install with: pip install vosk[/dim]")
+        return
+
+    # Select recording mode
+    mode_choice = questionary.select(
+        "Select Recording Mode:",
+        choices=[
+            questionary.Choice("Toggle (click to start/stop)", value="toggle"),
+            questionary.Choice("Push-to-Talk (hold Enter)", value="push_to_talk"),
+            questionary.Choice("Voice Activated (auto-detect speech)", value="vad"),
+            questionary.Choice("Toggle + VAD (toggle with auto-pause)", value="toggle_vad"),
+        ],
+        use_arrow_keys=True
+    ).ask()
+
+    if not mode_choice:
+        return
+
+    # Select output mode
+    output_choice = questionary.select(
+        "Select Output Mode:",
+        choices=[
+            questionary.Choice("Display Only", value="display"),
+            questionary.Choice("Auto-save to file", value="auto_save"),
+            questionary.Choice("Copy to clipboard", value="clipboard"),
+        ],
+        use_arrow_keys=True
+    ).ask()
+
+    if not output_choice:
+        return
+
+    # Configure transcriber
+    mode_map = {
+        "push_to_talk": RecordingMode.PUSH_TO_TALK,
+        "toggle": RecordingMode.TOGGLE,
+        "vad": RecordingMode.VAD,
+        "toggle_vad": RecordingMode.TOGGLE_VAD,
+    }
+    output_map = {
+        "display": OutputMode.DISPLAY,
+        "auto_save": OutputMode.AUTO_SAVE,
+        "clipboard": OutputMode.CLIPBOARD,
+    }
+
+    config = StreamingConfig(
+        recording_mode=mode_map[mode_choice],
+        output_mode=output_map[output_choice],
+        vad_enabled=mode_choice in ("vad", "toggle_vad"),
+        silence_timeout=1.5,
+    )
+
+    transcriber = VoskStreamingTranscriber(config)
+
+    # Audio parameters
+    SAMPLE_RATE = 16000
+    CHANNELS = 1
+    BLOCK_SIZE = 4000  # ~250ms chunks
+
+    # State
+    is_recording = False
+    is_push_to_talk_active = False
+    accumulated_text = []
+    current_partial = ""
+
+    def audio_callback(indata, frames, time_info, status):
+        nonlocal current_partial, accumulated_text
+
+        if not transcriber.is_recording:
+            return
+
+        # For push-to-talk, only process when active
+        if mode_choice == "push_to_talk" and not is_push_to_talk_active:
+            return
+
+        # Convert float32 to int16 PCM
+        audio_data = (indata[:, 0] * 32767).astype(np.int16).tobytes()
+
+        # Process through transcriber
+        results = transcriber.process_chunk(audio_data)
+
+        for result in results:
+            if result.type == "partial":
+                current_partial = result.text
+            elif result.type == "final":
+                if result.text:
+                    accumulated_text.append(result.text)
+                    current_partial = ""
+            elif result.type == "vad":
+                pass  # Could display speaking indicator
+
+    console.print("\n[bold cyan]Live Transcription Ready[/bold cyan]")
+    console.print(f"[dim]Mode: {mode_choice} | Output: {output_choice}[/dim]\n")
+
+    if mode_choice == "push_to_talk":
+        console.print("[yellow]Hold Enter to speak, release to pause[/yellow]")
+        console.print("[yellow]Type 'q' and Enter to stop[/yellow]\n")
+    elif mode_choice == "toggle":
+        console.print("[yellow]Press Enter to start/stop recording[/yellow]")
+        console.print("[yellow]Type 'q' and Enter to quit[/yellow]\n")
+    else:
+        console.print("[yellow]Press Enter to start, 'q' to quit[/yellow]\n")
+
+    try:
+        # Start audio stream
+        with sd.InputStream(
+            samplerate=SAMPLE_RATE,
+            channels=CHANNELS,
+            dtype='float32',
+            blocksize=BLOCK_SIZE,
+            callback=audio_callback
+        ):
+            # Start transcription session
+            transcriber.start_session()
+            is_recording = True
+
+            console.print("[green]● Recording started[/green]\n")
+            console.print("[bold]Transcription:[/bold]")
+            console.print("-" * 50)
+
+            # Main loop
+            while True:
+                try:
+                    # Non-blocking input check would be ideal, but for simplicity:
+                    if mode_choice == "push_to_talk":
+                        # For push-to-talk, we need a different approach
+                        import select
+                        import sys
+
+                        # Check if input is available (Unix only)
+                        if sys.platform != 'win32':
+                            if select.select([sys.stdin], [], [], 0.1)[0]:
+                                line = sys.stdin.readline().strip()
+                                if line.lower() == 'q':
+                                    break
+                                is_push_to_talk_active = True
+                            else:
+                                is_push_to_talk_active = False
+                        else:
+                            # Windows: simple blocking approach
+                            line = input()
+                            if line.lower() == 'q':
+                                break
+                            is_push_to_talk_active = not is_push_to_talk_active
+                    else:
+                        # Toggle mode: wait for input
+                        line = input()
+                        if line.lower() == 'q':
+                            break
+
+                        # Toggle recording
+                        if is_recording:
+                            result = transcriber.stop_session()
+                            is_recording = False
+                            console.print("\n[red]● Recording paused[/red]")
+
+                            if result.text:
+                                console.print(f"\n[green]Final:[/green] {result.text}")
+                        else:
+                            transcriber.start_session()
+                            is_recording = True
+                            console.print("[green]● Recording resumed[/green]")
+
+                    # Display current transcription
+                    if accumulated_text or current_partial:
+                        display = " ".join(accumulated_text)
+                        if current_partial:
+                            display += f" [dim italic]{current_partial}[/dim italic]"
+                        # Use carriage return to update same line
+                        console.print(f"\r{display}", end="")
+
+                except KeyboardInterrupt:
+                    break
+
+    except Exception as e:
+        console.print(f"\n[red]Error: {e}[/red]")
+
+    finally:
+        # Stop transcription
+        if transcriber.is_recording:
+            result = transcriber.stop_session()
+            if result.text:
+                accumulated_text.append(result.text.strip())
+
+        console.print("\n\n[yellow]● Recording stopped[/yellow]")
+        console.print("-" * 50)
+
+        # Final text
+        final_text = " ".join(accumulated_text)
+        if final_text:
+            console.print(f"\n[bold green]Final Transcription:[/bold green]\n{final_text}\n")
+
+            # Handle output mode
+            if output_choice == "clipboard":
+                try:
+                    import pyperclip
+                    pyperclip.copy(final_text)
+                    console.print("[green]Copied to clipboard![/green]")
+                except ImportError:
+                    console.print("[yellow]Install pyperclip for clipboard support: pip install pyperclip[/yellow]")
+
+            elif output_choice == "auto_save":
+                output_path = f"transcription_{int(time.time())}.txt"
+                with open(output_path, "w") as f:
+                    f.write(final_text)
+                console.print(f"[green]Saved to {output_path}[/green]")
+
+            elif Confirm.ask("Save transcription to file?", default=False):
+                output_path = Prompt.ask("Output filename", default=f"transcription_{int(time.time())}.txt")
+                with open(output_path, "w") as f:
+                    f.write(final_text)
+                console.print(f"[green]Saved to {output_path}[/green]")
+        else:
+            console.print("[dim]No speech detected[/dim]")
+
+
 def manage_server():
     """Manage the API server."""
     print_header()
@@ -449,10 +685,11 @@ def main_menu():
 
         choices = [
             questionary.Choice("Transcribe Audio File", value="1"),
-            questionary.Choice("Compare All Models", value="2"),
-            questionary.Choice("List Available Models", value="3"),
+            questionary.Choice("Live Voice Transcription", value="2"),
+            questionary.Choice("Compare All Models", value="3"),
+            questionary.Choice("List Available Models", value="4"),
             questionary.Separator(),
-            questionary.Choice("Manage API Server", value="4"),
+            questionary.Choice("Manage API Server", value="5"),
             questionary.Separator(),
             questionary.Choice("Exit", value="0")
         ]
@@ -467,12 +704,15 @@ def main_menu():
             transcribe_file()
             input("\nPress Enter to continue...")
         elif choice == "2":
-            compare_models()
+            live_transcription()
             input("\nPress Enter to continue...")
         elif choice == "3":
-            list_available_models()
+            compare_models()
             input("\nPress Enter to continue...")
         elif choice == "4":
+            list_available_models()
+            input("\nPress Enter to continue...")
+        elif choice == "5":
             manage_server()
             input("\nPress Enter to continue...")
         elif not choice or choice == "0":
