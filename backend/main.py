@@ -809,6 +809,8 @@ async def websocket_live_stream(websocket: WebSocket):
                 # Decode base64 audio data
                 try:
                     audio_data = base64.b64decode(data.get("data", ""))
+                    if len(audio_data) > 0:
+                        logger.info(f"Live audio chunk: {len(audio_data)} bytes")
                 except Exception as e:
                     await websocket.send_json({
                         "type": "error",
@@ -818,7 +820,10 @@ async def websocket_live_stream(websocket: WebSocket):
 
                 # Process audio chunk
                 results = transcriber.process_chunk(audio_data)
+                if results:
+                    logger.info(f"Live transcription results: {len(results)} items")
                 for result in results:
+                    logger.info(f"Sending result: {result.to_dict()}")
                     await websocket.send_json(result.to_dict())
 
             elif msg_type == "finalize":
