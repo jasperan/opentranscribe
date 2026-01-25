@@ -1,76 +1,97 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
+  darkMode: 'class',
   content: [
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './lib/**/*.{js,ts,jsx,tsx,mdx}',
+    // Keep old paths for Electron app (deferred)
     './index.html',
     './src/renderer/**/*.{js,ts,jsx,tsx}',
     './App.tsx',
-    './components/**/*.{js,ts,jsx,tsx}',
   ],
-  darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
-        // Light theme colors
-        background: {
-          primary: 'var(--bg-primary)',
-          secondary: 'var(--bg-secondary)',
-          elevated: 'var(--bg-elevated)',
+        // Verbatim brand colors - dark theme focused
+        background: '#0a0a0a',
+        foreground: '#fafafa',
+        card: {
+          DEFAULT: '#141414',
+          foreground: '#fafafa',
         },
-        foreground: {
-          primary: 'var(--text-primary)',
-          secondary: 'var(--text-secondary)',
+        popover: {
+          DEFAULT: '#141414',
+          foreground: '#fafafa',
+        },
+        primary: {
+          DEFAULT: '#3b82f6',
+          foreground: '#ffffff',
+        },
+        secondary: {
+          DEFAULT: '#27272a',
+          foreground: '#fafafa',
+        },
+        muted: {
+          DEFAULT: '#27272a',
+          foreground: '#a1a1aa',
         },
         accent: {
-          DEFAULT: 'var(--accent)',
-          hover: 'var(--accent-hover)',
+          DEFAULT: '#27272a',
+          foreground: '#fafafa',
         },
-        border: 'var(--border)',
+        destructive: {
+          DEFAULT: '#ef4444',
+          foreground: '#fafafa',
+        },
+        border: '#27272a',
+        input: '#27272a',
+        ring: '#3b82f6',
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'monospace'],
       },
-      fontSize: {
-        '2xs': ['0.625rem', { lineHeight: '1rem' }],
-      },
-      boxShadow: {
-        'glow-blue': '0 0 20px rgba(59, 130, 246, 0.3)',
-        'glow-purple': '0 0 20px rgba(139, 92, 246, 0.3)',
-      },
-      animation: {
-        'fade-in': 'fadeIn var(--duration-normal) var(--ease-out-expo)',
-        'slide-up': 'slideUp var(--duration-normal) var(--ease-out-expo)',
-        'slide-down': 'slideDown var(--duration-normal) var(--ease-out-expo)',
-        'scale-in': 'scaleIn var(--duration-fast) var(--ease-out-expo)',
-        'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
+      borderRadius: {
+        lg: '0.75rem',
+        md: '0.5rem',
+        sm: '0.25rem',
       },
       keyframes: {
-        fadeIn: {
+        'fade-in': {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        'fade-out': {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
         },
-        slideDown: {
-          '0%': { opacity: '0', transform: 'translateY(-10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        'slide-in-from-bottom': {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        scaleIn: {
-          '0%': { opacity: '0', transform: 'scale(0.95)' },
-          '100%': { opacity: '1', transform: 'scale(1)' },
+        'slide-in-from-right': {
+          '0%': { transform: 'translateX(10px)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
         },
-        pulseSubtle: {
+        'pulse-slow': {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
+          '50%': { opacity: '0.5' },
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
         },
       },
-      transitionTimingFunction: {
-        'out-expo': 'var(--ease-out-expo)',
-        'in-out-expo': 'var(--ease-in-out-expo)',
+      animation: {
+        'fade-in': 'fade-in 0.3s ease-out',
+        'fade-out': 'fade-out 0.3s ease-out',
+        'slide-in-from-bottom': 'slide-in-from-bottom 0.4s ease-out',
+        'slide-in-from-right': 'slide-in-from-right 0.3s ease-out',
+        'pulse-slow': 'pulse-slow 2s ease-in-out infinite',
+        shimmer: 'shimmer 2s infinite',
       },
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography')],
 };

@@ -1,0 +1,101 @@
+# Verbatim Configuration
+# Copy this file to config.yaml and fill in your values
+# NEVER commit config.yaml to git - it contains secrets
+
+app:
+  name: "Verbatim"
+  url: "http://localhost:3000"  # Update with your domain later
+  environment: "development"     # development | production
+
+database:
+  path: "./data/verbatim.db"
+
+storage:
+  audio_path: "./data/audio"
+  exports_path: "./data/exports"
+  max_file_size_mb: 500
+  cleanup_after_hours: 24
+
+auth:
+  magic_link_expiry_minutes: 15
+  session_expiry_days: 7
+  rate_limit_magic_links_per_hour: 3
+
+# ============================================================
+# STRIPE SETUP INSTRUCTIONS
+# ============================================================
+# 1. Create a Stripe account at https://dashboard.stripe.com
+# 2. Get your API keys from https://dashboard.stripe.com/apikeys
+#    - Use test keys (sk_test_..., pk_test_...) for development
+#    - Switch to live keys for production
+# 3. Create Products and Prices:
+#    - Go to https://dashboard.stripe.com/products
+#    - Create a product called "Verbatim Creator" - $8/month
+#    - Create a product called "Verbatim Pro" - $19/month
+#    - Create a product called "Verbatim Unlimited" - $39/month
+#    - Copy each price ID (price_...) below
+# 4. Set up webhooks:
+#    - Go to https://dashboard.stripe.com/webhooks
+#    - Add endpoint: https://yourdomain.com/api/billing/webhook
+#    - Select events: customer.subscription.created,
+#      customer.subscription.updated, customer.subscription.deleted,
+#      invoice.paid, invoice.payment_failed
+#    - Copy the signing secret (whsec_...) below
+# ============================================================
+stripe:
+  secret_key: "sk_test_YOUR_SECRET_KEY_HERE"
+  publishable_key: "pk_test_YOUR_PUBLISHABLE_KEY_HERE"
+  webhook_secret: "whsec_YOUR_WEBHOOK_SECRET_HERE"
+  prices:
+    creator: "price_CREATOR_PRICE_ID"
+    pro: "price_PRO_PRICE_ID"
+    unlimited: "price_UNLIMITED_PRICE_ID"
+
+# ============================================================
+# RESEND (EMAIL) SETUP INSTRUCTIONS
+# ============================================================
+# 1. Create a Resend account at https://resend.com
+# 2. For development, you can use the default onboarding@resend.dev
+# 3. For production:
+#    - Add and verify your domain at https://resend.com/domains
+#    - Create an API key at https://resend.com/api-keys
+# 4. Copy your API key below
+# ============================================================
+email:
+  provider: "resend"
+  resend_api_key: "re_YOUR_API_KEY_HERE"
+  from_address: "Verbatim <auth@yourdomain.com>"
+  # For development/testing, use: "Verbatim <onboarding@resend.dev>"
+
+transcription:
+  default_model: "faster-whisper"
+  max_duration_hours: 4
+  concurrent_jobs_free: 2
+  concurrent_jobs_paid: 5
+
+rate_limits:
+  free_requests_per_min: 10
+  paid_requests_per_min: 60
+  api_requests_per_min: 120
+
+security:
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+  # Add your production domain when ready:
+  # - "https://verbatim.yourdomain.com"
+
+# Tier configuration (minutes per month)
+tiers:
+  free:
+    minutes: 500
+    concurrent_jobs: 2
+  creator:
+    minutes: 3000
+    concurrent_jobs: 3
+  pro:
+    minutes: 10000
+    concurrent_jobs: 5
+  unlimited:
+    minutes: -1  # -1 = unlimited
+    concurrent_jobs: 10
