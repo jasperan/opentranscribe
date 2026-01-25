@@ -250,10 +250,9 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
       // Connect WebSocket first
       await connectWebSocket();
 
-      // Get microphone access
+      // Get microphone access - don't force sample rate, use device native
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -263,9 +262,11 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
 
       mediaStreamRef.current = stream;
 
-      // Create audio context for processing and visualization
-      const audioContext = new AudioContext({ sampleRate: 16000 });
+      // Create audio context at device's native sample rate
+      const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
+      const nativeSampleRate = audioContext.sampleRate;
+      const targetSampleRate = 16000;
 
       const source = audioContext.createMediaStreamSource(stream);
       sourceRef.current = source;
@@ -280,18 +281,35 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
       processorRef.current = processor;
 
+      // Resampling function
+      const resample = (inputData: Float32Array, inputRate: number, outputRate: number): Float32Array => {
+        if (inputRate === outputRate) return inputData;
+        const ratio = inputRate / outputRate;
+        const outputLength = Math.round(inputData.length / ratio);
+        const output = new Float32Array(outputLength);
+        for (let i = 0; i < outputLength; i++) {
+          const srcIndex = i * ratio;
+          const srcIndexFloor = Math.floor(srcIndex);
+          const srcIndexCeil = Math.min(srcIndexFloor + 1, inputData.length - 1);
+          const t = srcIndex - srcIndexFloor;
+          output[i] = inputData[srcIndexFloor] * (1 - t) + inputData[srcIndexCeil] * t;
+        }
+        return output;
+      };
+
       processor.onaudioprocess = (event) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
         if (!isRecording) return;
         if (selectedMode === 'push_to_talk' && !isPushToTalkActive) return;
 
-        // Get audio data
+        // Get audio data and resample to 16kHz
         const inputData = event.inputBuffer.getChannelData(0);
+        const resampledData = resample(inputData, nativeSampleRate, targetSampleRate);
 
         // Convert Float32Array to 16-bit PCM
-        const pcmData = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
+        const pcmData = new Int16Array(resampledData.length);
+        for (let i = 0; i < resampledData.length; i++) {
+          const s = Math.max(-1, Math.min(1, resampledData[i]));
           pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
 
