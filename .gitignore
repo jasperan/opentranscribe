@@ -57,3 +57,4 @@ playwright-report/
 
 # Claude-generated plan documents
 docs/plans/
+certs/
