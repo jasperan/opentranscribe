@@ -2,9 +2,11 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 
 const HTTPS_PORT = 3443;
-const HTTP_TARGET = 'http://127.0.0.1:3000';
+const FRONTEND_PORT = 3000;
+const BACKEND_PORT = 8000;
 
 const options = {
   key: fs.readFileSync(path.join(__dirname, 'certs/localhost-key.pem')),
@@ -12,17 +14,19 @@ const options = {
 };
 
 const proxy = https.createServer(options, (req, res) => {
-  const targetUrl = new URL(req.url, HTTP_TARGET);
+  // Route /ws/* and /api/* to backend, everything else to frontend
+  const isBackendRoute = req.url.startsWith('/ws/') || req.url.startsWith('/api/transcription/');
+  const targetPort = isBackendRoute ? BACKEND_PORT : FRONTEND_PORT;
 
   const proxyReq = http.request(
     {
       hostname: '127.0.0.1',
-      port: 3000,
+      port: targetPort,
       path: req.url,
       method: req.method,
       headers: {
         ...req.headers,
-        host: 'localhost:3000',
+        host: `localhost:${targetPort}`,
       },
     },
     (proxyRes) => {
@@ -42,16 +46,28 @@ const proxy = https.createServer(options, (req, res) => {
 
 // Handle WebSocket upgrades
 proxy.on('upgrade', (req, socket, head) => {
-  const target = new URL('ws://127.0.0.1:3000' + req.url);
+  // Route /ws/* to backend, everything else to frontend
+  const isBackendRoute = req.url.startsWith('/ws/');
+  const targetPort = isBackendRoute ? BACKEND_PORT : FRONTEND_PORT;
 
-  const proxySocket = require('net').connect(3000, '127.0.0.1', () => {
+  console.log(`WebSocket upgrade: ${req.url} -> port ${targetPort}`);
+
+  const proxySocket = net.connect(targetPort, '127.0.0.1', () => {
+    // Send the original HTTP upgrade request
+    const headers = Object.entries(req.headers)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\r\n');
+
     proxySocket.write(
-      `${req.method} ${req.url} HTTP/1.1\r\n` +
-      Object.entries(req.headers)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('\r\n') +
-      '\r\n\r\n'
+      `${req.method} ${req.url} HTTP/1.1\r\n${headers}\r\n\r\n`
     );
+
+    // If there's buffered data (head), send it
+    if (head && head.length) {
+      proxySocket.write(head);
+    }
+
+    // Pipe data between client and target
     proxySocket.pipe(socket);
     socket.pipe(proxySocket);
   });
@@ -60,9 +76,16 @@ proxy.on('upgrade', (req, socket, head) => {
     console.error('WebSocket proxy error:', err.message);
     socket.destroy();
   });
+
+  socket.on('error', (err) => {
+    console.error('Client socket error:', err.message);
+    proxySocket.destroy();
+  });
 });
 
 proxy.listen(HTTPS_PORT, '0.0.0.0', () => {
   console.log(`HTTPS proxy running on https://0.0.0.0:${HTTPS_PORT}`);
-  console.log(`Proxying to ${HTTP_TARGET}`);
+  console.log(`  Frontend (HTTP):  http://127.0.0.1:${FRONTEND_PORT}`);
+  console.log(`  Backend (HTTP):   http://127.0.0.1:${BACKEND_PORT}`);
+  console.log(`  WebSocket /ws/*:  -> backend:${BACKEND_PORT}`);
 });

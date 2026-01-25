@@ -146,10 +146,12 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
       setStatus('connecting');
       setError(null);
 
-      // Use current hostname for WebSocket connection (works for both local and external access)
+      // Use current hostname and port for WebSocket connection
+      // When using HTTPS, WebSocket goes through the same proxy on the same port
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = window.location.hostname;
-      const wsUrl = `${wsProtocol}//${wsHost}:8000/ws/live/stream`;
+      const wsPort = window.location.protocol === 'https:' ? window.location.port : '8000';
+      const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}/ws/live/stream`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
