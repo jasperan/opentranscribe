@@ -20,6 +20,18 @@ __pycache__/
 .env.local
 .env.*.local
 
+# Configuration (contains secrets)
+config.yaml
+
+# Data directory (runtime data)
+data/
+
+# Next.js
+.next/
+
+# Loki Mode
+.loki/
+
 # IDE
 .vscode/
 .idea/

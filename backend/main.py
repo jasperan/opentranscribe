@@ -17,8 +17,9 @@ import time
 from models import get_model, list_models, get_available_models, get_default_model
 from diff import DiffEngine
 from utils.audio import is_video_file, extract_audio_from_video
-from streaming import VoskStreamingTranscriber
+from streaming import VoskStreamingTranscriber, WhisperStreamingTranscriber
 from streaming.vosk_streaming import StreamingConfig, RecordingMode, OutputMode
+from streaming.whisper_streaming import StreamingConfig as WhisperConfig, StreamingMode
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -717,6 +718,174 @@ async def streaming_status():
         "supported_output_modes": ["display", "auto_save", "clipboard"],
         "sample_rate": 16000,
         "format": "PCM 16-bit mono"
+    }
+
+
+# ============================================================================
+# Live Streaming with Faster-Whisper
+# ============================================================================
+
+# Store active live streaming sessions
+live_sessions: dict[str, WhisperStreamingTranscriber] = {}
+
+
+@app.websocket("/ws/live/stream")
+async def websocket_live_stream(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time streaming transcription using faster-whisper.
+
+    This provides higher accuracy than Vosk with auto-correcting partial results.
+
+    Protocol:
+    - Client sends: {"type": "start", "language": "en", "model": "base", "mode": "vad"}
+    - Client sends: {"type": "audio", "data": "<base64 PCM audio>"}
+    - Client sends: {"type": "finalize"} (force finalize current segment)
+    - Client sends: {"type": "stop"}
+
+    - Server sends: {"type": "ready", "model": "faster-whisper-base"}
+    - Server sends: {"type": "vad", "speaking": true, "probability": 0.92}
+    - Server sends: {"type": "partial", "text": "Hello world", "confidence": 0.85}
+    - Server sends: {"type": "final", "text": "Hello world, how are you?", "duration": 2.3}
+    - Server sends: {"type": "stopped", "total_duration": 45.2}
+    - Server sends: {"type": "error", "message": "..."}
+    """
+    await websocket.accept()
+    session_id = str(id(websocket))
+    transcriber: Optional[WhisperStreamingTranscriber] = None
+
+    logger.info(f"Live WebSocket connection opened: {session_id}")
+
+    try:
+        while True:
+            # Receive message from client
+            data = await websocket.receive_json()
+            msg_type = data.get("type")
+
+            if msg_type == "start":
+                # Parse configuration
+                language = data.get("language")  # None = auto-detect
+                model_size = data.get("model", "base")
+                mode_str = data.get("mode", "vad")
+                vad_threshold = data.get("vad_threshold", 0.5)
+                silence_duration = data.get("silence_duration", 1.0)
+
+                # Map string mode to enum
+                mode_map = {
+                    "continuous": StreamingMode.CONTINUOUS,
+                    "vad": StreamingMode.VAD,
+                    "push_to_talk": StreamingMode.PUSH_TO_TALK,
+                }
+
+                config = WhisperConfig(
+                    language=language if language else None,
+                    model_size=model_size,
+                    mode=mode_map.get(mode_str, StreamingMode.VAD),
+                    vad_threshold=vad_threshold,
+                    silence_duration=silence_duration,
+                )
+
+                # Create and start transcriber
+                transcriber = WhisperStreamingTranscriber(config)
+
+                if not transcriber.is_available():
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "faster-whisper is not installed. Run: pip install faster-whisper"
+                    })
+                    continue
+
+                result = transcriber.start_session()
+                live_sessions[session_id] = transcriber
+                await websocket.send_json(result.to_dict())
+
+            elif msg_type == "audio":
+                if transcriber is None or not transcriber.is_recording:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "No active session. Send 'start' first."
+                    })
+                    continue
+
+                # Decode base64 audio data
+                try:
+                    audio_data = base64.b64decode(data.get("data", ""))
+                except Exception as e:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": f"Invalid audio data: {str(e)}"
+                    })
+                    continue
+
+                # Process audio chunk
+                results = transcriber.process_chunk(audio_data)
+                for result in results:
+                    await websocket.send_json(result.to_dict())
+
+            elif msg_type == "finalize":
+                # Force finalization of current buffer (for push-to-talk release)
+                if transcriber is not None and transcriber.is_recording:
+                    result = transcriber.force_finalize()
+                    if result:
+                        await websocket.send_json(result.to_dict())
+
+            elif msg_type == "stop":
+                if transcriber is not None and transcriber.is_recording:
+                    result = transcriber.stop_session()
+                    await websocket.send_json(result.to_dict())
+
+                # Clean up session
+                if session_id in live_sessions:
+                    del live_sessions[session_id]
+                transcriber = None
+
+            elif msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+    except WebSocketDisconnect:
+        logger.info(f"Live WebSocket disconnected: {session_id}")
+    except Exception as e:
+        logger.exception(f"Live WebSocket error: {e}")
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "message": str(e)
+            })
+        except Exception:
+            pass
+    finally:
+        # Clean up on disconnect
+        if session_id in live_sessions:
+            del live_sessions[session_id]
+        logger.info(f"Live WebSocket session cleaned up: {session_id}")
+
+
+@app.get("/live/status")
+async def live_status():
+    """Get status of live streaming transcription service."""
+    # Check if faster-whisper is available
+    try:
+        test_transcriber = WhisperStreamingTranscriber()
+        whisper_available = test_transcriber.is_available()
+    except Exception:
+        whisper_available = False
+
+    # Check if VAD is available
+    try:
+        from streaming.whisper_streaming import SileroVAD
+        vad = SileroVAD()
+        vad_available = vad.is_available()
+    except Exception:
+        vad_available = False
+
+    return {
+        "available": whisper_available,
+        "vad_available": vad_available,
+        "active_sessions": len(live_sessions),
+        "supported_modes": ["continuous", "vad", "push_to_talk"],
+        "supported_models": ["tiny", "base", "small", "medium", "large-v3"],
+        "default_model": "base",
+        "sample_rate": 16000,
+        "format": "PCM 16-bit signed mono"
     }
 
 
