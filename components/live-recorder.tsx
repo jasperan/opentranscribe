@@ -62,6 +62,14 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [error, setError] = useState<string | null>(null);
 
+  // Check if secure context (HTTPS or localhost) for microphone access
+  const [isSecureContext, setIsSecureContext] = useState(true);
+  useEffect(() => {
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isHttps = window.location.protocol === 'https:';
+    setIsSecureContext(isLocalhost || isHttps);
+  }, []);
+
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [isPushToTalkActive, setIsPushToTalkActive] = useState(false);
@@ -225,6 +233,17 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
       setSegments([]);
       setPartialText('');
       setTotalDuration(0);
+
+      // Check if mediaDevices is available (requires HTTPS or localhost)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocalhost && window.location.protocol !== 'https:') {
+          setError('Microphone access requires HTTPS. Please access this page via HTTPS or localhost.');
+        } else {
+          setError('Your browser does not support microphone access.');
+        }
+        return;
+      }
 
       // Connect WebSocket first
       await connectWebSocket();
@@ -733,7 +752,14 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
             </motion.div>
           )}
 
-          {!isRecording && (
+          {!isRecording && !isSecureContext && (
+            <div className="flex items-center gap-2 text-yellow-500">
+              <AlertCircle className="w-4 h-4" />
+              <span>HTTPS required for microphone access. Use localhost or enable HTTPS.</span>
+            </div>
+          )}
+
+          {!isRecording && isSecureContext && (
             <span className="text-muted-foreground">
               Click to start recording with {MODELS.find(m => m.id === selectedModel)?.name} model
             </span>
