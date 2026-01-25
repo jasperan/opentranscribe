@@ -29,6 +29,7 @@ cleanup() {
     echo -e "\n${YELLOW}Shutting down services...${NC}"
     kill $BACKEND_PID 2>/dev/null || true
     kill $FRONTEND_PID 2>/dev/null || true
+    kill $HTTPS_PID 2>/dev/null || true
     exit 0
 }
 
@@ -77,6 +78,33 @@ else
     echo -e "${YELLOW}⏳ Frontend still starting...${NC}"
 fi
 
+# Generate SSL certificates if they don't exist
+HTTPS_PORT=${HTTPS_PORT:-3443}
+if [ ! -f "$SCRIPT_DIR/certs/localhost.pem" ]; then
+    echo -e "${YELLOW}Generating SSL certificates...${NC}"
+    mkdir -p "$SCRIPT_DIR/certs"
+    openssl req -x509 -newkey rsa:2048 \
+        -keyout "$SCRIPT_DIR/certs/localhost-key.pem" \
+        -out "$SCRIPT_DIR/certs/localhost.pem" \
+        -days 365 -nodes \
+        -subj "/CN=localhost" \
+        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:$(curl -s ifconfig.me 2>/dev/null || echo '127.0.0.1')" \
+        2>/dev/null
+fi
+
+# Start HTTPS proxy
+echo -e "${GREEN}Starting HTTPS proxy on port $HTTPS_PORT...${NC}"
+cd "$SCRIPT_DIR"
+nohup node https-server.js > /tmp/opentranscribe-https.log 2>&1 &
+HTTPS_PID=$!
+sleep 2
+
+if curl -sk https://localhost:$HTTPS_PORT/ > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ HTTPS proxy started successfully${NC}"
+else
+    echo -e "${YELLOW}⏳ HTTPS proxy still starting...${NC}"
+fi
+
 # Get external IP
 EXTERNAL_IP=$(get_external_ip)
 
@@ -85,20 +113,18 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${GREEN}OpenTranscribe is running!${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "  ${GREEN}App URL:${NC}        http://$EXTERNAL_IP:$FRONTEND_PORT"
-echo -e "  ${GREEN}Live Tab:${NC}       http://$EXTERNAL_IP:$FRONTEND_PORT/app/live"
+echo -e "  ${GREEN}HTTPS App:${NC}      https://$EXTERNAL_IP:$HTTPS_PORT/app"
+echo -e "  ${GREEN}HTTPS Live:${NC}     https://$EXTERNAL_IP:$HTTPS_PORT/app/live"
 echo -e "  ${GREEN}API Docs:${NC}       http://$EXTERNAL_IP:$BACKEND_PORT/docs"
 echo ""
 echo -e "  ${YELLOW}Local URLs:${NC}"
-echo -e "    Frontend:     http://localhost:$FRONTEND_PORT"
+echo -e "    HTTPS:        https://localhost:$HTTPS_PORT"
+echo -e "    HTTP:         http://localhost:$FRONTEND_PORT"
 echo -e "    Backend API:  http://localhost:$BACKEND_PORT"
 echo ""
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
-echo -e "${YELLOW}⚠ Live Transcription (Microphone) requires HTTPS or localhost${NC}"
-echo ""
-echo -e "  To use microphone from a remote machine, create an SSH tunnel:"
-echo -e "  ${GREEN}ssh -L 3000:localhost:3000 -L 8000:localhost:8000 user@$EXTERNAL_IP${NC}"
-echo -e "  Then open: ${GREEN}http://localhost:$FRONTEND_PORT/app/live${NC}"
+echo -e "${YELLOW}⚠ Your browser will show a security warning for the self-signed${NC}"
+echo -e "${YELLOW}  certificate. Click 'Advanced' → 'Proceed' to continue.${NC}"
 echo ""
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
