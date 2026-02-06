@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
+  darkMode: ['class'],
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -13,40 +13,40 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Verbatim brand colors - dark theme focused
-        background: '#0a0a0a',
-        foreground: '#fafafa',
+        // Theme-aware colors via CSS variables (RGB format for opacity support)
+        background: 'rgb(var(--color-background) / <alpha-value>)',
+        foreground: 'rgb(var(--color-foreground) / <alpha-value>)',
         card: {
-          DEFAULT: '#141414',
-          foreground: '#fafafa',
+          DEFAULT: 'rgb(var(--color-card) / <alpha-value>)',
+          foreground: 'rgb(var(--color-card-foreground) / <alpha-value>)',
         },
         popover: {
-          DEFAULT: '#141414',
-          foreground: '#fafafa',
+          DEFAULT: 'rgb(var(--color-popover) / <alpha-value>)',
+          foreground: 'rgb(var(--color-popover-foreground) / <alpha-value>)',
         },
         primary: {
-          DEFAULT: '#3b82f6',
-          foreground: '#ffffff',
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
+          foreground: 'rgb(var(--color-primary-foreground) / <alpha-value>)',
         },
         secondary: {
-          DEFAULT: '#27272a',
-          foreground: '#fafafa',
+          DEFAULT: 'rgb(var(--color-secondary) / <alpha-value>)',
+          foreground: 'rgb(var(--color-secondary-foreground) / <alpha-value>)',
         },
         muted: {
-          DEFAULT: '#27272a',
-          foreground: '#a1a1aa',
+          DEFAULT: 'rgb(var(--color-muted) / <alpha-value>)',
+          foreground: 'rgb(var(--color-muted-foreground) / <alpha-value>)',
         },
         accent: {
-          DEFAULT: '#27272a',
-          foreground: '#fafafa',
+          DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
+          foreground: 'rgb(var(--color-accent-foreground) / <alpha-value>)',
         },
         destructive: {
-          DEFAULT: '#ef4444',
-          foreground: '#fafafa',
+          DEFAULT: 'rgb(var(--color-destructive) / <alpha-value>)',
+          foreground: 'rgb(var(--color-destructive-foreground) / <alpha-value>)',
         },
-        border: '#27272a',
-        input: '#27272a',
-        ring: '#3b82f6',
+        border: 'rgb(var(--color-border) / <alpha-value>)',
+        input: 'rgb(var(--color-input) / <alpha-value>)',
+        ring: 'rgb(var(--color-ring) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],

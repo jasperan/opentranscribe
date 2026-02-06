@@ -47,6 +47,7 @@ export default function AudioUploader({
 }: AudioUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const validateFile = (file: File): string | null => {
     // Check file type
@@ -78,6 +79,7 @@ export default function AudioUploader({
         setError(validationError);
         return;
       }
+      setSelectedFile(file);
       onFileSelect(file);
     },
     [onFileSelect, maxSizeMB]
@@ -125,6 +127,13 @@ export default function AudioUploader({
     [handleFile]
   );
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -133,7 +142,7 @@ export default function AudioUploader({
         onDragLeave={handleDragLeave}
         animate={{
           scale: isDragging ? 1.02 : 1,
-          borderColor: isDragging ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+          borderColor: isDragging ? 'rgb(var(--color-primary))' : 'rgb(var(--color-border))',
         }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         className={`upload-zone relative overflow-hidden ${
@@ -157,6 +166,7 @@ export default function AudioUploader({
           accept={ACCEPTED_EXTENSIONS.join(',')}
           onChange={handleChange}
           disabled={disabled}
+          aria-label="Upload audio file"
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
         />
 
@@ -183,6 +193,16 @@ export default function AudioUploader({
                 >
                   <Music className="w-10 h-10 text-primary" />
                 </motion.div>
+              ) : selectedFile ? (
+                <motion.div
+                  key="file"
+                  initial={{ scale: 0, y: 10 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0, y: -10 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  <FileAudio className="w-10 h-10 text-primary" />
+                </motion.div>
               ) : (
                 <motion.div
                   key="upload"
@@ -198,13 +218,19 @@ export default function AudioUploader({
           </motion.div>
 
           <h3 className="text-xl font-semibold mb-2">
-            {isDragging ? 'Drop your audio file' : 'Upload audio file'}
+            {isDragging
+              ? 'Drop your audio file'
+              : selectedFile
+                ? selectedFile.name
+                : 'Upload audio file'}
           </h3>
 
           <p className="text-muted-foreground text-sm mb-6 max-w-sm">
             {isDragging
               ? 'Release to start transcription'
-              : 'Drag and drop your audio file here, or click to browse'}
+              : selectedFile
+                ? formatFileSize(selectedFile.size)
+                : 'Drag and drop your audio file here, or click to browse'}
           </p>
 
           {/* Supported formats */}

@@ -21,7 +21,11 @@ import {
   Calendar,
   ChevronDown,
   X,
+  Mic,
+  Upload,
 } from 'lucide-react';
+import { HistoryListSkeleton } from '@/components/skeleton-loader';
+import EmptyState from '@/components/empty-state';
 
 interface Transcription {
   id: string;
@@ -282,38 +286,28 @@ export default function HistoryPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        </div>
+        <HistoryListSkeleton count={5} />
       ) : filteredTranscriptions.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card p-12 text-center"
-        >
-          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
-            {searchQuery || filterStatus !== 'all' ? (
-              <Search className="w-8 h-8 text-muted-foreground" />
-            ) : (
-              <Clock className="w-8 h-8 text-muted-foreground" />
-            )}
-          </div>
-          <h2 className="text-xl font-semibold mb-2">
-            {searchQuery || filterStatus !== 'all' ? 'No results found' : 'No transcriptions yet'}
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            {searchQuery
-              ? 'Try adjusting your search or filters.'
-              : filterStatus !== 'all'
-                ? `No ${filterStatus} transcriptions found.`
-                : 'Your transcription history will appear here.'}
-          </p>
-          {!searchQuery && filterStatus === 'all' && (
-            <Link href="/app" className="btn-primary inline-block">
-              Create your first transcription
-            </Link>
+        <div className="card p-6">
+          {searchQuery || filterStatus !== 'all' ? (
+            <EmptyState
+              icon={Search}
+              title="No results found"
+              description={
+                searchQuery
+                  ? 'Try adjusting your search or filters.'
+                  : `No ${filterStatus} transcriptions found.`
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={Mic}
+              title="No transcriptions yet"
+              description="Upload an audio file to get started. Your transcription history will appear here."
+              action={{ label: 'Start transcribing', href: '/app' }}
+            />
           )}
-        </motion.div>
+        </div>
       ) : (
         <div className="space-y-3">
           {filteredTranscriptions.map((transcription, index) => {
@@ -325,8 +319,9 @@ export default function HistoryPage() {
                 key={transcription.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
-                className={`card p-4 transition-all hover:border-primary/30 ${
+                transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 25 }}
+                whileHover={{ scale: 1.005, y: -1 }}
+                className={`card p-4 transition-all hover:border-primary/30 hover:shadow-md cursor-pointer ${
                   selectedId === transcription.id ? 'border-primary' : ''
                 }`}
               >

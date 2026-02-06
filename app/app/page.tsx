@@ -19,6 +19,7 @@ import AudioUploader from '@/components/audio-uploader';
 import AudioPlayer, { type AudioPlayerHandle } from '@/components/audio-player';
 import TranscriptionView from '@/components/transcription-view';
 import ExportMenu from '@/components/export-menu';
+import ErrorMessage from '@/components/error-message';
 import UsageMeter from '@/components/usage-meter';
 import LiveTranscription from '@/components/live-transcription';
 
@@ -117,9 +118,13 @@ export default function AppPage() {
     }
 
     // Fall back to copying link
-    await navigator.clipboard.writeText(shareUrl);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Clipboard API not available
+    }
   }, [result, currentFile]);
 
   // Format duration for display
@@ -233,6 +238,9 @@ export default function AppPage() {
               </div>
               <button
                 onClick={() => setEnableDiarization(!enableDiarization)}
+                role="switch"
+                aria-checked={enableDiarization}
+                aria-label="Toggle speaker diarization"
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   enableDiarization ? 'bg-primary' : 'bg-muted'
                 }`}
@@ -254,10 +262,14 @@ export default function AppPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="py-16 text-center"
+            className="py-12 text-center"
           >
             <div className="relative mx-auto w-20 h-20 mb-6">
-              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+              <motion.div
+                className="absolute inset-0 bg-primary/20 rounded-full"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+              />
               <div className="absolute inset-0 bg-primary/10 rounded-full flex items-center justify-center">
                 <Loader2 className="w-10 h-10 text-primary animate-spin" />
               </div>
@@ -266,17 +278,52 @@ export default function AppPage() {
             <h2 className="text-xl font-semibold mb-2">
               {status === 'uploading' ? 'Uploading...' : 'Transcribing...'}
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-6">
               {currentFile?.name || 'Processing your audio'}
             </p>
-            {status === 'transcribing' && (
-              <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  AI-powered transcription
-                </div>
+
+            {/* Progress bar */}
+            <div className="max-w-xs mx-auto mb-4">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-primary rounded-full"
+                  initial={{ width: '0%' }}
+                  animate={{
+                    width: status === 'uploading' ? '40%' : '85%',
+                  }}
+                  transition={{ duration: status === 'uploading' ? 2 : 15, ease: 'easeOut' }}
+                />
               </div>
-            )}
+              <p className="text-xs text-muted-foreground mt-2">
+                {status === 'uploading' ? 'Uploading file...' : 'Processing with AI...'}
+              </p>
+            </div>
+
+            {/* Steps indicator */}
+            <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground mt-6">
+              <div className={`flex items-center gap-2 ${status === 'uploading' ? 'text-primary' : 'text-green-500'}`}>
+                {status === 'uploading' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                Upload
+              </div>
+              <div className="w-8 h-px bg-border" />
+              <div className={`flex items-center gap-2 ${status === 'transcribing' ? 'text-primary' : 'text-muted-foreground'}`}>
+                {status === 'transcribing' ? (
+                  <Sparkles className="w-4 h-4 animate-pulse" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                Transcribe
+              </div>
+              <div className="w-8 h-px bg-border" />
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Done
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -361,20 +408,12 @@ export default function AppPage() {
         )}
 
         {inputMode === 'file' && status === 'error' && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="py-12 text-center"
-          >
-            <div className="w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <AlertCircle className="w-8 h-8 text-destructive" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">Transcription failed</h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">{error}</p>
-            <button onClick={handleReset} className="btn-primary">
-              Try again
-            </button>
-          </motion.div>
+          <ErrorMessage
+            title="Transcription failed"
+            message={error || 'An unknown error occurred'}
+            variant="full"
+            onRetry={handleReset}
+          />
         )}
       </div>
     </div>
