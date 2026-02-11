@@ -41,6 +41,8 @@ function Toggle({
   return (
     <button
       onClick={onChange}
+      role="switch"
+      aria-checked={enabled}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 ${
         enabled ? 'bg-primary' : 'bg-muted'
       }`}

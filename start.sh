@@ -24,12 +24,19 @@ get_external_ip() {
     curl -s ifconfig.me 2>/dev/null || curl -s icanhazip.com 2>/dev/null || hostname -I | awk '{print $1}'
 }
 
+# PIDs to track
+BACKEND_PID=""
+FRONTEND_PID=""
+HTTPS_PID=""
+TAIL_PID=""
+
 # Cleanup function
 cleanup() {
     echo -e "\n${YELLOW}Shutting down services...${NC}"
-    kill $BACKEND_PID 2>/dev/null || true
-    kill $FRONTEND_PID 2>/dev/null || true
-    kill $HTTPS_PID 2>/dev/null || true
+    [ -n "$TAIL_PID" ] && kill "$TAIL_PID" 2>/dev/null || true
+    [ -n "$HTTPS_PID" ] && kill "$HTTPS_PID" 2>/dev/null || true
+    [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null || true
+    [ -n "$BACKEND_PID" ] && kill "$BACKEND_PID" 2>/dev/null || true
     exit 0
 }
 
@@ -44,8 +51,10 @@ echo -e "${NC}"
 
 # Kill any existing processes on our ports
 echo -e "${YELLOW}Cleaning up existing processes...${NC}"
-kill $(lsof -t -i:$BACKEND_PORT) 2>/dev/null || true
-kill $(lsof -t -i:$FRONTEND_PORT) 2>/dev/null || true
+PIDS_BACKEND=$(lsof -t -i:"$BACKEND_PORT" 2>/dev/null || true)
+PIDS_FRONTEND=$(lsof -t -i:"$FRONTEND_PORT" 2>/dev/null || true)
+[ -n "$PIDS_BACKEND" ] && echo "Killing processes on port $BACKEND_PORT: $PIDS_BACKEND" && kill $PIDS_BACKEND 2>/dev/null || true
+[ -n "$PIDS_FRONTEND" ] && echo "Killing processes on port $FRONTEND_PORT: $PIDS_FRONTEND" && kill $PIDS_FRONTEND 2>/dev/null || true
 sleep 1
 
 # Start backend

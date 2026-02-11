@@ -99,7 +99,7 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | AudioWorkletNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
@@ -277,58 +277,75 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
       analyserRef.current = analyser;
       source.connect(analyser);
 
-      // Create script processor for sending audio data
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-
-      // Resampling function
-      const resample = (inputData: Float32Array, inputRate: number, outputRate: number): Float32Array => {
-        if (inputRate === outputRate) return inputData;
-        const ratio = inputRate / outputRate;
-        const outputLength = Math.round(inputData.length / ratio);
-        const output = new Float32Array(outputLength);
-        for (let i = 0; i < outputLength; i++) {
-          const srcIndex = i * ratio;
-          const srcIndexFloor = Math.floor(srcIndex);
-          const srcIndexCeil = Math.min(srcIndexFloor + 1, inputData.length - 1);
-          const t = srcIndex - srcIndexFloor;
-          output[i] = inputData[srcIndexFloor] * (1 - t) + inputData[srcIndexCeil] * t;
-        }
-        return output;
-      };
-
-      processor.onaudioprocess = (event) => {
+      // Helper to send PCM buffer over WebSocket
+      const sendPcmData = (pcmBuffer: ArrayBuffer) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-        if (!isRecording) return;
-        if (selectedMode === 'push_to_talk' && !isPushToTalkActive) return;
-
-        // Get audio data and resample to 16kHz
-        const inputData = event.inputBuffer.getChannelData(0);
-        const resampledData = resample(inputData, nativeSampleRate, targetSampleRate);
-
-        // Convert Float32Array to 16-bit PCM
-        const pcmData = new Int16Array(resampledData.length);
-        for (let i = 0; i < resampledData.length; i++) {
-          const s = Math.max(-1, Math.min(1, resampledData[i]));
-          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-
-        // Convert to base64 and send
-        const bytes = new Uint8Array(pcmData.buffer);
+        const bytes = new Uint8Array(pcmBuffer);
         let binary = '';
         for (let i = 0; i < bytes.byteLength; i++) {
           binary += String.fromCharCode(bytes[i]);
         }
         const base64 = btoa(binary);
-
         wsRef.current.send(JSON.stringify({
           type: 'audio',
           data: base64,
         }));
       };
 
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+      // Try AudioWorklet first, fall back to ScriptProcessorNode
+      try {
+        await audioContext.audioWorklet.addModule('/audio-worklet-processor.js');
+        const workletNode = new AudioWorkletNode(audioContext, 'audio-capture-processor', {
+          processorOptions: { targetSampleRate: targetSampleRate },
+        });
+        processorRef.current = workletNode;
+
+        workletNode.port.onmessage = (event) => {
+          if (event.data.type === 'audio') {
+            sendPcmData(event.data.pcmData);
+          }
+        };
+
+        source.connect(workletNode);
+        workletNode.connect(audioContext.destination);
+      } catch {
+        // Fallback: ScriptProcessorNode for browsers without AudioWorklet support
+        const processor = audioContext.createScriptProcessor(4096, 1, 1);
+        processorRef.current = processor;
+
+        const resample = (inputData: Float32Array, inputRate: number, outputRate: number): Float32Array => {
+          if (inputRate === outputRate) return inputData;
+          const ratio = inputRate / outputRate;
+          const outputLength = Math.round(inputData.length / ratio);
+          const output = new Float32Array(outputLength);
+          for (let i = 0; i < outputLength; i++) {
+            const srcIndex = i * ratio;
+            const srcIndexFloor = Math.floor(srcIndex);
+            const srcIndexCeil = Math.min(srcIndexFloor + 1, inputData.length - 1);
+            const t = srcIndex - srcIndexFloor;
+            output[i] = inputData[srcIndexFloor] * (1 - t) + inputData[srcIndexCeil] * t;
+          }
+          return output;
+        };
+
+        processor.onaudioprocess = (event) => {
+          if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+          if (!isRecording) return;
+          if (selectedMode === 'push_to_talk' && !isPushToTalkActive) return;
+
+          const inputData = event.inputBuffer.getChannelData(0);
+          const resampledData = resample(inputData, nativeSampleRate, targetSampleRate);
+          const pcmData = new Int16Array(resampledData.length);
+          for (let i = 0; i < resampledData.length; i++) {
+            const s = Math.max(-1, Math.min(1, resampledData[i]));
+            pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          }
+          sendPcmData(pcmData.buffer);
+        };
+
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+      }
 
       // Start visualization
       updateVisualization();

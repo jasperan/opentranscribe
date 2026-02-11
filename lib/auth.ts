@@ -93,7 +93,11 @@ export async function verifyMagicLinkAndCreateSession(
  */
 export async function getCurrentUser(): Promise<User | null> {
   // In development mode, auto-authenticate with a dev user
-  if (process.env.NODE_ENV === 'development') {
+  // (disabled during E2E testing via DISABLE_DEV_SHORTCUTS)
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.DISABLE_DEV_SHORTCUTS !== 'true'
+  ) {
     const devUser = getOrCreateUser('dev@localhost');
     return devUser;
   }

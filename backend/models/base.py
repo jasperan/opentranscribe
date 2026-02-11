@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional
+import os
 import time
 
 
@@ -32,7 +33,8 @@ class BaseTranscriber(ABC):
     supports_streaming: bool = False
     requires_gpu: bool = False
 
-    _model = None  # Cached model instance
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
 
     @abstractmethod
     def load_model(self) -> None:
@@ -54,10 +56,22 @@ class BaseTranscriber(ABC):
 
         Returns:
             TranscriptionResult with text, segments, and metadata
+
+        Raises:
+            RuntimeError: If the model fails to load
+            FileNotFoundError: If the audio file does not exist
         """
+        if not os.path.isfile(audio_path):
+            raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
         # Ensure model is loaded
         if self._model is None:
-            self.load_model()
+            try:
+                self.load_model()
+            except Exception as e:
+                raise RuntimeError(f"Failed to load model '{self.name}': {e}") from e
+            if self._model is None:
+                raise RuntimeError(f"Model '{self.name}' failed to initialize (model is None after load)")
 
         # Time the transcription
         start_time = time.time()

@@ -26,9 +26,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!file.type.startsWith('audio/')) {
+    const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/wave', 'audio/x-wav', 'audio/flac', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac'];
+    const allowedExtensions = ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aac'];
+    const fileExtension = file.name ? '.' + file.name.split('.').pop()?.toLowerCase() : '';
+    const isValidType = allowedTypes.includes(file.type) || file.type.startsWith('audio/');
+    const isValidExtension = allowedExtensions.includes(fileExtension);
+
+    if (!isValidType && !isValidExtension) {
       return NextResponse.json(
-        { error: 'File must be an audio file' },
+        { error: 'File must be an audio file (MP3, WAV, FLAC, OGG, M4A, AAC)' },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (max 500MB)
+    const maxSize = 500 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 500MB.' },
         { status: 400 }
       );
     }

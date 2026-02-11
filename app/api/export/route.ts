@@ -113,9 +113,14 @@ export async function POST(request: NextRequest) {
     }
 
     const text = transcription.result_text;
-    const segments: Segment[] = transcription.result_segments
-      ? JSON.parse(transcription.result_segments)
-      : [];
+    let segments: Segment[] = [];
+    if (transcription.result_segments) {
+      try {
+        segments = JSON.parse(transcription.result_segments);
+      } catch {
+        segments = [];
+      }
+    }
 
     let content: string;
     let contentType: string;

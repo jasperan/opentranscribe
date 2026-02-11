@@ -75,8 +75,14 @@ export class BackendManager {
       this.process = null;
     });
 
-    // Wait for backend to be ready
-    await this.waitForReady();
+    // Wait for backend to be ready, kill process if it fails
+    try {
+      await this.waitForReady();
+    } catch (error) {
+      // Backend failed to start - clean up the spawned process
+      await this.shutdown();
+      throw error;
+    }
   }
 
   /**

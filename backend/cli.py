@@ -117,14 +117,24 @@ def stop_api_server():
     if _server_process:
         try:
             # Send SIGTERM to process group
-            os.killpg(os.getpgid(_server_process.pid), signal.SIGTERM)
+            pgid = os.getpgid(_server_process.pid)
+            os.killpg(pgid, signal.SIGTERM)
             _server_process.wait(timeout=5)
-        except (ProcessLookupError, subprocess.TimeoutExpired):
+        except ProcessLookupError:
+            # Process already exited
+            pass
+        except subprocess.TimeoutExpired:
             try:
-                os.killpg(os.getpgid(_server_process.pid), signal.SIGKILL)
-            except ProcessLookupError:
+                pgid = os.getpgid(_server_process.pid)
+                os.killpg(pgid, signal.SIGKILL)
+                _server_process.wait(timeout=3)
+            except (ProcessLookupError, subprocess.TimeoutExpired):
                 pass
-        _server_process = None
+        except OSError:
+            # Process group may no longer exist
+            pass
+        finally:
+            _server_process = None
 
 
 def is_server_running():

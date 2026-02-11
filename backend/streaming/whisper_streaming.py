@@ -218,19 +218,38 @@ class WhisperStreamingTranscriber:
         self._lock = threading.Lock()
 
     def _load_whisper(self) -> None:
-        """Load the faster-whisper model."""
+        """Load the faster-whisper model with CUDA fallback to CPU."""
         if self._whisper_model is not None:
             return
 
         from faster_whisper import WhisperModel
 
-        logger.info(f"Loading faster-whisper model: {self.config.model_size} on {self.config.device}")
+        # Try configured device first, fall back to CPU
+        if self.config.device == "cuda":
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    logger.info(f"Loading faster-whisper model: {self.config.model_size} on cuda")
+                    self._whisper_model = WhisperModel(
+                        self.config.model_size,
+                        device="cuda",
+                        compute_type=self.config.compute_type,
+                    )
+                    logger.info("Faster-whisper model loaded on GPU (CUDA)")
+                    return
+                else:
+                    logger.warning("CUDA requested but not available, falling back to CPU")
+            except Exception as e:
+                logger.warning(f"GPU loading failed: {e}, falling back to CPU")
+
+        # CPU fallback
+        logger.info(f"Loading faster-whisper model: {self.config.model_size} on cpu")
         self._whisper_model = WhisperModel(
             self.config.model_size,
-            device=self.config.device,
-            compute_type=self.config.compute_type,
+            device="cpu",
+            compute_type="int8",
         )
-        logger.info("Faster-whisper model loaded")
+        logger.info("Faster-whisper model loaded on CPU")
 
     def is_available(self) -> bool:
         """Check if faster-whisper is available."""
@@ -386,6 +405,7 @@ class WhisperStreamingTranscriber:
                 if not self._audio_buffer:
                     return None
                 audio = np.concatenate(self._audio_buffer)
+                last_partial = self._last_partial
 
             # Transcribe with faster-whisper
             segments, info = self._whisper_model.transcribe(
@@ -418,24 +438,24 @@ class WhisperStreamingTranscriber:
             with self._lock:
                 duration = self._buffer_duration
 
-            if finalize:
-                self._current_segment_text = text
-                return StreamingResult(
-                    type="final",
-                    text=text,
-                    confidence=avg_confidence,
-                    duration=duration
-                )
-            else:
-                # Only send if text changed
-                if text != self._last_partial:
-                    self._last_partial = text
+                if finalize:
                     self._current_segment_text = text
                     return StreamingResult(
-                        type="partial",
+                        type="final",
                         text=text,
-                        confidence=avg_confidence
+                        confidence=avg_confidence,
+                        duration=duration
                     )
+                else:
+                    # Only send if text changed
+                    if text != last_partial:
+                        self._last_partial = text
+                        self._current_segment_text = text
+                        return StreamingResult(
+                            type="partial",
+                            text=text,
+                            confidence=avg_confidence
+                        )
 
             return None
 

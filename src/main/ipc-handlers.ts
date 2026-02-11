@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, Notification, shell, app } from 'electron';
+import { ipcMain, BrowserWindow, Notification, shell, app, nativeTheme } from 'electron';
 import { BackendManager } from './backend-manager';
 import { showOpenDialog, addToRecentDocuments } from './shortcuts';
 import fs from 'fs/promises';
@@ -51,31 +51,46 @@ export function registerIpcHandlers(backendManager: BackendManager): void {
 
   ipcMain.handle('read-file', async (_, filePath: string) => {
     try {
-      const buffer = await fs.readFile(filePath);
-      const base64 = buffer.toString('base64');
-      const ext = path.extname(filePath).toLowerCase();
+      // Validate file path to prevent path traversal attacks
+      if (typeof filePath !== 'string' || filePath.length === 0) {
+        throw new Error('Invalid file path');
+      }
+
+      const resolvedPath = path.resolve(filePath);
+
+      // Ensure the file has a valid audio extension
+      const ext = path.extname(resolvedPath).toLowerCase();
+      const allowedExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.webm'];
+      if (!allowedExtensions.includes(ext)) {
+        throw new Error(`File type not allowed: ${ext}. Only audio files are supported.`);
+      }
+
+      const buffer = await fs.readFile(resolvedPath);
       const mimeType = getMimeType(ext);
-      addToRecentDocuments(filePath);
-      return { base64, mimeType, fileName: path.basename(filePath) };
+      addToRecentDocuments(resolvedPath);
+      return { base64: buffer.toString('base64'), mimeType, fileName: path.basename(resolvedPath) };
     } catch (error) {
       throw new Error(`Failed to read file: ${error}`);
     }
   });
 
   ipcMain.handle('show-item-in-folder', async (_, filePath: string) => {
-    shell.showItemInFolder(filePath);
+    if (typeof filePath !== 'string' || filePath.length === 0) {
+      throw new Error('Invalid file path');
+    }
+    shell.showItemInFolder(path.resolve(filePath));
   });
 
   // Notifications
-  ipcMain.on('show-notification', (_, { title, body }: { title: string; body: string }) => {
-    if (Notification.isSupported()) {
-      new Notification({ title, body }).show();
-    }
+  ipcMain.on('show-notification', (_, data: { title: string; body: string }) => {
+    if (!Notification.isSupported()) return;
+    const title = typeof data?.title === 'string' ? data.title.slice(0, 256) : 'OpenTranscribe';
+    const body = typeof data?.body === 'string' ? data.body.slice(0, 1024) : '';
+    new Notification({ title, body }).show();
   });
 
   // Theme
   ipcMain.handle('get-system-theme', () => {
-    const { nativeTheme } = require('electron');
     return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
   });
 

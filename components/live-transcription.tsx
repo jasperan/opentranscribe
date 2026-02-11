@@ -60,7 +60,7 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
   const wsRef = useRef<WebSocket | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | AudioWorkletNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   // Cleanup on unmount
@@ -79,8 +79,11 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
 
   const connectWebSocket = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
-      // Use the backend WebSocket endpoint
-      const wsUrl = `ws://localhost:8000/ws/transcribe/stream`;
+      // Use dynamic protocol/host detection for WebSocket connection
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.hostname;
+      const wsPort = window.location.protocol === 'https:' ? window.location.port : '8000';
+      const wsUrl = `${wsProtocol}//${wsHost}:${wsPort}/ws/transcribe/stream`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -170,37 +173,57 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
       const source = audioContext.createMediaStreamSource(stream);
       sourceRef.current = source;
 
-      // Create script processor for raw PCM data
-      // Note: ScriptProcessorNode is deprecated but still widely supported
-      // AudioWorklet would be the modern alternative
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-
-      processor.onaudioprocess = (event) => {
+      // Helper to send PCM buffer over WebSocket
+      const sendPcmData = (pcmBuffer: ArrayBuffer) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-        if (!isRecording && recordingMode !== 'push_to_talk') return;
-        if (recordingMode === 'push_to_talk' && !isPushToTalkActive) return;
-
-        // Get audio data
-        const inputData = event.inputBuffer.getChannelData(0);
-
-        // Convert Float32Array to 16-bit PCM
-        const pcmData = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          const s = Math.max(-1, Math.min(1, inputData[i]));
-          pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        const bytes = new Uint8Array(pcmBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
         }
-
-        // Convert to base64 and send
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(pcmData.buffer)));
+        const base64 = btoa(binary);
         wsRef.current.send(JSON.stringify({
           type: 'audio',
           data: base64,
         }));
       };
 
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+      // Try AudioWorklet first, fall back to ScriptProcessorNode
+      try {
+        await audioContext.audioWorklet.addModule('/audio-worklet-processor.js');
+        const workletNode = new AudioWorkletNode(audioContext, 'audio-capture-processor', {
+          processorOptions: { targetSampleRate: 16000 },
+        });
+        processorRef.current = workletNode;
+
+        workletNode.port.onmessage = (event) => {
+          if (event.data.type === 'audio') {
+            sendPcmData(event.data.pcmData);
+          }
+        };
+
+        source.connect(workletNode);
+        workletNode.connect(audioContext.destination);
+      } catch {
+        // Fallback: ScriptProcessorNode for browsers without AudioWorklet support
+        const processor = audioContext.createScriptProcessor(4096, 1, 1);
+        processorRef.current = processor;
+
+        processor.onaudioprocess = (event) => {
+          if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+          const inputData = event.inputBuffer.getChannelData(0);
+          const pcmData = new Int16Array(inputData.length);
+          for (let i = 0; i < inputData.length; i++) {
+            const s = Math.max(-1, Math.min(1, inputData[i]));
+            pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          }
+          sendPcmData(pcmData.buffer);
+        };
+
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+      }
 
       setIsRecording(true);
 

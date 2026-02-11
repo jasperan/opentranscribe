@@ -24,12 +24,25 @@ def convert_to_wav(audio_path: str, sample_rate: int = 16000) -> str:
 
     Returns:
         Path to converted WAV file (temporary file)
+
+    Raises:
+        RuntimeError: If pydub is not installed and ffmpeg conversion fails
     """
+    # If already a WAV file, check if conversion is needed
+    if audio_path.lower().endswith('.wav'):
+        try:
+            import wave
+            with wave.open(audio_path, "rb") as wf:
+                if wf.getnchannels() == 1 and wf.getsampwidth() == 2 and wf.getframerate() == sample_rate:
+                    return audio_path  # Already in correct format
+        except Exception:
+            pass  # Fall through to conversion
+
     try:
         from pydub import AudioSegment
 
         audio = AudioSegment.from_file(audio_path)
-        audio = audio.set_frame_rate(sample_rate).set_channels(1)
+        audio = audio.set_frame_rate(sample_rate).set_channels(1).set_sample_width(2)
 
         # Create temp file
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
@@ -40,7 +53,26 @@ def convert_to_wav(audio_path: str, sample_rate: int = 16000) -> str:
         return tmp_path
 
     except ImportError:
-        # If pydub not available, return original path and hope it works
+        # Try ffmpeg directly as fallback
+        try:
+            tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+            tmp_path = tmp_file.name
+            tmp_file.close()
+
+            result = subprocess.run(
+                ["ffmpeg", "-i", audio_path, "-ar", str(sample_rate),
+                 "-ac", "1", "-acodec", "pcm_s16le", "-y", tmp_path],
+                capture_output=True, text=True, timeout=120
+            )
+            if result.returncode == 0 and os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                return tmp_path
+            # Clean up on failure
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+
+        logger.warning("Neither pydub nor ffmpeg available for audio conversion, returning original path")
         return audio_path
 
 

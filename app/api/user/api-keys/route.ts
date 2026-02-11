@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { createApiKey, getUserApiKeys } from '@/lib/db/api-keys';
+import { createApiKey, getUserApiKeys, canCreateApiKey } from '@/lib/db/api-keys';
 
 export async function GET() {
   try {
@@ -39,14 +39,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name } = body;
 
-    if (!name) {
+    if (!name || typeof name !== 'string') {
       return NextResponse.json(
         { error: 'Name is required' },
         { status: 400 }
       );
     }
 
-    const { key, keyInfo } = createApiKey(user.id, name);
+    // Validate name length
+    const trimmedName = name.trim();
+    if (trimmedName.length === 0 || trimmedName.length > 100) {
+      return NextResponse.json(
+        { error: 'Name must be between 1 and 100 characters' },
+        { status: 400 }
+      );
+    }
+
+    // Check API key limit
+    if (!canCreateApiKey(user.id)) {
+      return NextResponse.json(
+        { error: 'Maximum number of API keys reached (10)' },
+        { status: 400 }
+      );
+    }
+
+    const { key, keyInfo } = createApiKey(user.id, trimmedName);
 
     return NextResponse.json({ key, keyInfo });
   } catch (error) {

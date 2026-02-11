@@ -2,7 +2,7 @@ import { app, BrowserWindow, globalShortcut } from 'electron';
 import path from 'path';
 import { createWindow, getMainWindow } from './window';
 import { BackendManager } from './backend-manager';
-import { createTray } from './tray';
+import { createTray, destroyTray } from './tray';
 import { registerIpcHandlers } from './ipc-handlers';
 import { registerShortcuts } from './shortcuts';
 import { setupAutoUpdater } from './updater';
@@ -36,9 +36,16 @@ app.whenReady().then(async () => {
   const isRunning = await backendManager.checkHealth();
   if (!isRunning) {
     mainWindow.webContents.send('backend-status', { status: 'starting' });
-    await backendManager.ensureRunning();
+    try {
+      await backendManager.ensureRunning();
+      mainWindow.webContents.send('backend-status', { status: 'running' });
+    } catch (error) {
+      console.error('Failed to start backend:', error);
+      mainWindow.webContents.send('backend-status', { status: 'error' });
+    }
+  } else {
+    mainWindow.webContents.send('backend-status', { status: 'running' });
   }
-  mainWindow.webContents.send('backend-status', { status: 'running' });
 
   app.on('activate', () => {
     // On macOS re-create window when dock icon is clicked
@@ -54,10 +61,21 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('will-quit', async () => {
-  // Unregister all shortcuts
-  globalShortcut.unregisterAll();
+let isShuttingDown = false;
 
-  // Gracefully shutdown backend
-  await backendManager.shutdown();
+app.on('before-quit', (event) => {
+  if (!isShuttingDown && backendManager.isManaged()) {
+    isShuttingDown = true;
+    event.preventDefault();
+    // Unregister all shortcuts
+    globalShortcut.unregisterAll();
+    // Clean up tray
+    destroyTray();
+    // Gracefully shutdown backend, then quit
+    backendManager.shutdown().finally(() => {
+      app.quit();
+    });
+  } else {
+    globalShortcut.unregisterAll();
+  }
 });

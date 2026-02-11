@@ -40,7 +40,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    // Parse and validate the body to ensure it's valid JSON
+    await request.json();
     // In a full implementation, we'd save these settings to the database
     // For now, just acknowledge the update
 

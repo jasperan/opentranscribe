@@ -81,6 +81,7 @@ class VoskTranscriber(BaseTranscriber):
             from utils.audio import convert_to_wav
         wav_path = convert_to_wav(audio_path, sample_rate=16000)
 
+        wf = None
         try:
             wf = wave.open(wav_path, "rb")
 
@@ -105,8 +106,6 @@ class VoskTranscriber(BaseTranscriber):
             final_result = json.loads(rec.FinalResult())
             if final_result.get("text"):
                 results.append(final_result)
-
-            wf.close()
 
             # Build segments and full text
             segments = []
@@ -137,6 +136,12 @@ class VoskTranscriber(BaseTranscriber):
             )
 
         finally:
+            # Close the wave file handle
+            if wf is not None:
+                try:
+                    wf.close()
+                except Exception:
+                    pass
             # Clean up temp file if we created one
             if wav_path != audio_path and os.path.exists(wav_path):
                 os.unlink(wav_path)

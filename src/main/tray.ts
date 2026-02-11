@@ -4,6 +4,7 @@ import fs from 'fs';
 import { BackendManager } from './backend-manager';
 
 let tray: Tray | null = null;
+let trayUpdateInterval: ReturnType<typeof setInterval> | null = null;
 
 // Create a simple tray icon programmatically if file doesn't exist
 function createTrayIcon(): Electron.NativeImage {
@@ -98,7 +99,7 @@ export function createTray(
       {
         label: 'Quit',
         click: () => {
-          mainWindow.destroy();
+          app.quit();
         },
       },
     ]);
@@ -119,10 +120,24 @@ export function createTray(
     }
   });
 
-  // Update menu periodically
-  setInterval(updateContextMenu, 10000);
+  // Update menu periodically (clear any previous interval)
+  if (trayUpdateInterval) {
+    clearInterval(trayUpdateInterval);
+  }
+  trayUpdateInterval = setInterval(updateContextMenu, 10000);
 
   return tray;
+}
+
+export function destroyTray(): void {
+  if (trayUpdateInterval) {
+    clearInterval(trayUpdateInterval);
+    trayUpdateInterval = null;
+  }
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
 }
 
 export function getTray(): Tray | null {

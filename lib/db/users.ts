@@ -133,6 +133,12 @@ export function canTranscribe(
   return { allowed: true };
 }
 
+export function deleteUser(userId: string): boolean {
+  const db = getDb();
+  const result = db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  return result.changes > 0;
+}
+
 export function getUserUsage(userId: string): {
   used: number;
   limit: number;

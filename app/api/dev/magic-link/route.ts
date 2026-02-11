@@ -19,12 +19,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email } = body;
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
     // Create magic link and return the token directly (dev only!)
-    const { token } = createMagicLink(email);
+    const { token } = createMagicLink(email.trim().toLowerCase());
     const verifyUrl = `http://localhost:3000/verify?token=${token}`;
 
     return NextResponse.json({

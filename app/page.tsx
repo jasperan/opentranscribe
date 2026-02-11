@@ -137,14 +137,19 @@ export default function LandingPage() {
   const router = useRouter();
 
   // In development mode, skip landing page and go straight to the app
+  // (disabled during E2E testing via NEXT_PUBLIC_DISABLE_DEV_SHORTCUTS)
+  const devShortcutsEnabled =
+    process.env.NODE_ENV === 'development' &&
+    process.env.NEXT_PUBLIC_DISABLE_DEV_SHORTCUTS !== 'true';
+
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (devShortcutsEnabled) {
       router.replace('/app');
     }
-  }, [router]);
+  }, [router, devShortcutsEnabled]);
 
   // Show nothing while redirecting in dev mode
-  if (process.env.NODE_ENV === 'development') {
+  if (devShortcutsEnabled) {
     return null;
   }
 

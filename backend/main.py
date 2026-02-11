@@ -9,6 +9,7 @@ import base64
 import asyncio
 import tempfile
 import os
+import uuid
 from typing import Optional
 import logging
 import hashlib
@@ -85,6 +86,9 @@ def get_audio_duration(file_path: str) -> float:
         logger.warning(f"Could not get audio duration: {e}")
     return 0.0
 
+
+# Maximum file upload size (500 MB)
+MAX_UPLOAD_SIZE = 500 * 1024 * 1024
 
 # Audio magic bytes for validation
 AUDIO_MAGIC_BYTES = {
@@ -221,9 +225,14 @@ async def transcribe_audio(
         is_audio = content_type.startswith("audio/")
         is_video = content_type.startswith("video/")
 
+        # Safe filename extraction
+        filename = file.filename or ""
+        # Strip path components to prevent directory traversal
+        filename = os.path.basename(filename)
+
         if not is_audio and not is_video:
             # Check by file extension as fallback
-            suffix = os.path.splitext(file.filename)[1].lower() if file.filename else ""
+            suffix = os.path.splitext(filename)[1].lower()
             if suffix in {'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.wma', '.opus'}:
                 is_audio = True
             elif suffix in {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'}:
@@ -249,9 +258,14 @@ async def transcribe_audio(
             )
 
         # Save uploaded file temporarily
-        suffix = os.path.splitext(file.filename)[1] if file.filename else ".mp3"
+        suffix = os.path.splitext(filename)[1] if filename else ".mp3"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
             content = await file.read()
+            if len(content) > MAX_UPLOAD_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB."
+                )
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
@@ -355,10 +369,18 @@ async def diarize_audio(
                 detail="File must be an audio file"
             )
 
+        # Safe filename extraction
+        filename = os.path.basename(file.filename) if file.filename else ""
+
         # Save uploaded file temporarily
-        suffix = os.path.splitext(file.filename)[1] if file.filename else ".mp3"
+        suffix = os.path.splitext(filename)[1] if filename else ".mp3"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
             content = await file.read()
+            if len(content) > MAX_UPLOAD_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB."
+                )
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
@@ -387,7 +409,6 @@ async def diarize_audio(
             )
 
         # First, get transcription
-        import time
         start_time = time.time()
         transcription = transcriber.transcribe(tmp_path, language=language)
 
@@ -500,10 +521,18 @@ async def compare_models(
                 detail="No models available for comparison"
             )
 
+        # Safe filename extraction
+        filename = os.path.basename(file.filename) if file.filename else ""
+
         # Save uploaded file temporarily
-        suffix = os.path.splitext(file.filename)[1] if file.filename else ".mp3"
+        suffix = os.path.splitext(filename)[1] if filename else ".mp3"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
             content = await file.read()
+            if len(content) > MAX_UPLOAD_SIZE:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB."
+                )
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
@@ -576,7 +605,7 @@ async def websocket_stream(websocket: WebSocket):
     - Server sends: {"type": "error", "message": "..."}
     """
     await websocket.accept()
-    session_id = str(id(websocket))
+    session_id = str(uuid.uuid4())
     transcriber: Optional[VoskStreamingTranscriber] = None
 
     logger.info(f"WebSocket connection opened: {session_id}")
@@ -695,6 +724,12 @@ async def websocket_stream(websocket: WebSocket):
         except Exception:
             pass
     finally:
+        # Stop transcriber session to free resources
+        if transcriber is not None and transcriber.is_recording:
+            try:
+                transcriber.stop_session()
+            except Exception:
+                pass
         # Clean up on disconnect
         if session_id in streaming_sessions:
             del streaming_sessions[session_id]
@@ -750,7 +785,7 @@ async def websocket_live_stream(websocket: WebSocket):
     - Server sends: {"type": "error", "message": "..."}
     """
     await websocket.accept()
-    session_id = str(id(websocket))
+    session_id = str(uuid.uuid4())
     transcriber: Optional[WhisperStreamingTranscriber] = None
 
     logger.info(f"Live WebSocket connection opened: {session_id}")
@@ -810,7 +845,7 @@ async def websocket_live_stream(websocket: WebSocket):
                 try:
                     audio_data = base64.b64decode(data.get("data", ""))
                     if len(audio_data) > 0:
-                        logger.info(f"Live audio chunk: {len(audio_data)} bytes")
+                        logger.debug(f"Live audio chunk: {len(audio_data)} bytes")
                 except Exception as e:
                     await websocket.send_json({
                         "type": "error",
@@ -821,9 +856,9 @@ async def websocket_live_stream(websocket: WebSocket):
                 # Process audio chunk
                 results = transcriber.process_chunk(audio_data)
                 if results:
-                    logger.info(f"Live transcription results: {len(results)} items")
+                    logger.debug(f"Live transcription results: {len(results)} items")
                 for result in results:
-                    logger.info(f"Sending result: {result.to_dict()}")
+                    logger.debug(f"Sending result: {result.to_dict()}")
                     await websocket.send_json(result.to_dict())
 
             elif msg_type == "finalize":
@@ -858,6 +893,12 @@ async def websocket_live_stream(websocket: WebSocket):
         except Exception:
             pass
     finally:
+        # Stop transcriber session to free resources
+        if transcriber is not None and transcriber.is_recording:
+            try:
+                transcriber.stop_session()
+            except Exception:
+                pass
         # Clean up on disconnect
         if session_id in live_sessions:
             del live_sessions[session_id]
