@@ -62,3 +62,26 @@ findings.md
 progress.md
 certs/
 .serena/
+
+# Claude Code & MCP tools
+CLAUDE.md
+.serena/
+.mcp/
+.claude/
+
+# Input media files
+input/
+*.mp3
+*.mp4
+*.wav
+*.m4a
+
+# Local certificates
+certs/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Config with secrets
+config.yaml
