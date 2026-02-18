@@ -11,12 +11,8 @@
     "backend:dev": "cd backend && python main.py",
     "backend:start": "cd backend && python -m uvicorn main:app --host 127.0.0.1 --port 8000",
     "db:migrate": "tsx lib/db/migrate.ts",
-    "test": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "electron:dev": "electron-forge start",
-    "electron:build": "electron-forge make",
-    "electron:package": "electron-forge package"
+    "test:e2e:ui": "playwright test --ui"
   },
   "keywords": [
     "transcription",
@@ -45,14 +41,6 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.6.0",
-    "@electron-forge/maker-deb": "^7.6.0",
-    "@electron-forge/maker-rpm": "^7.6.0",
-    "@electron-forge/maker-squirrel": "^7.6.0",
-    "@electron-forge/plugin-fuses": "^7.6.0",
-    "@electron-forge/plugin-vite": "^7.6.0",
-    "@electron-forge/publisher-github": "^7.6.0",
-    "@electron/fuses": "^1.8.0",
     "@playwright/test": "^1.49.1",
     "@tailwindcss/typography": "^0.5.10",
     "@types/better-sqlite3": "^7.6.0",
@@ -62,13 +50,11 @@
     "@types/react-dom": "^19.0.0",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.20",
-    "electron": "^33.2.1",
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.7.0",
-    "typescript": "~5.8.2",
-    "vitest": "^2.0.0"
+    "typescript": "~5.8.2"
   }
 }
