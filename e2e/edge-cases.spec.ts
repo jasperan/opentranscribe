@@ -30,13 +30,15 @@ test.describe('Login Form Validation', () => {
     await expect(button).toBeEnabled();
   });
 
-  test('shows error for invalid email format from API', async ({ page }) => {
+  test('disables submit button for invalid email format', async ({ page }) => {
     await page.goto('/login');
 
     await page.getByRole('textbox', { name: 'Email address' }).fill('test@invalid');
-    await page.getByRole('button', { name: 'Continue with email' }).click();
+    await expect(page.getByRole('button', { name: 'Continue with email' })).toBeDisabled();
 
-    await expect(page.getByText('Invalid email format')).toBeVisible();
+    // Valid email enables the button
+    await page.getByRole('textbox', { name: 'Email address' }).fill('test@example.com');
+    await expect(page.getByRole('button', { name: 'Continue with email' })).toBeEnabled();
   });
 
   test('email input has type="email" for native validation', async ({ page }) => {

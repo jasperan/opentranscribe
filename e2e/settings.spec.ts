@@ -117,10 +117,12 @@ test.describe('Settings Page', () => {
     });
 
     test('has theme selector', async ({ page }) => {
-      await expect(page.getByText('Theme')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Light' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Dark' })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'System' })).toBeVisible();
+      const themeLabel = page.getByText('Theme');
+      await themeLabel.scrollIntoViewIfNeeded();
+      await expect(themeLabel).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Light', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Dark', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'System', exact: true })).toBeVisible();
     });
   });
 

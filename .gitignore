@@ -85,3 +85,5 @@ certs/
 
 # Config with secrets
 config.yaml
+
+dogfood-output/

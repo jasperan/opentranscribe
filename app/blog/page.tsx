@@ -127,88 +127,91 @@ export default function BlogPage() {
           <div className="lg:col-span-2 space-y-8">
             {/* Featured Post */}
             {featuredPost && (
-              <motion.article
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="card overflow-hidden group cursor-pointer"
-              >
-                <div className="relative h-48 bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center">
-                  <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-white text-xs font-medium rounded-full">
-                      <Sparkles className="w-3 h-3" />
-                      Featured
+              <Link href={`/blog/${featuredPost.slug}`}>
+                <motion.article
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="card overflow-hidden group cursor-pointer"
+                >
+                  <div className="relative h-48 bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center">
+                    <div className="absolute top-4 left-4">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-white text-xs font-medium rounded-full">
+                        <Sparkles className="w-3 h-3" />
+                        Featured
+                      </span>
+                    </div>
+                    <TrendingUp className="w-16 h-16 text-primary/30" />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${featuredPost.tagColor}`}>
+                        <Tag className="w-3 h-3" />
+                        {featuredPost.tag}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(featuredPost.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText className="w-4 h-4" />
+                        {featuredPost.readTime}
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors">
+                      {featuredPost.title}
+                    </h2>
+                    <p className="text-muted-foreground mb-4">{featuredPost.excerpt}</p>
+                    <span className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all">
+                      Read more
+                      <ArrowRight className="w-4 h-4" />
                     </span>
                   </div>
-                  <TrendingUp className="w-16 h-16 text-primary/30" />
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${featuredPost.tagColor}`}>
-                      <Tag className="w-3 h-3" />
-                      {featuredPost.tag}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(featuredPost.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FileText className="w-4 h-4" />
-                      {featuredPost.readTime}
-                    </span>
-                  </div>
-                  <h2 className="text-2xl font-bold mb-3 group-hover:text-primary transition-colors">
-                    {featuredPost.title}
-                  </h2>
-                  <p className="text-muted-foreground mb-4">{featuredPost.excerpt}</p>
-                  <span className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all">
-                    Read more
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </div>
-              </motion.article>
+                </motion.article>
+              </Link>
             )}
 
             {/* Regular Posts */}
             <div className="space-y-6">
               {regularPosts.map((post, index) => (
-                <motion.article
-                  key={post.slug}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="card p-6 group cursor-pointer hover:border-primary/50 transition-all"
-                >
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${post.tagColor}`}>
-                      <Tag className="w-3 h-3" />
-                      {post.tag}
+                <Link key={post.slug} href={`/blog/${post.slug}`}>
+                  <motion.article
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="card p-6 group cursor-pointer hover:border-primary/50 transition-all"
+                  >
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${post.tagColor}`}>
+                        <Tag className="w-3 h-3" />
+                        {post.tag}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(post.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText className="w-4 h-4" />
+                        {post.readTime}
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+                      {post.title}
+                    </h2>
+                    <p className="text-muted-foreground mb-4">{post.excerpt}</p>
+                    <span className="inline-flex items-center gap-2 text-primary font-medium text-sm group-hover:gap-3 transition-all">
+                      Read more
+                      <ArrowRight className="w-4 h-4" />
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(post.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FileText className="w-4 h-4" />
-                      {post.readTime}
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
-                    {post.title}
-                  </h2>
-                  <p className="text-muted-foreground mb-4">{post.excerpt}</p>
-                  <span className="inline-flex items-center gap-2 text-primary font-medium text-sm group-hover:gap-3 transition-all">
-                    Read more
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </motion.article>
+                  </motion.article>
+                </Link>
               ))}
             </div>
           </div>

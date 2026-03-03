@@ -204,7 +204,7 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading || !email}
+                  disabled={isLoading || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
                   className="btn-primary w-full flex items-center justify-center gap-2"
                 >
                   {isLoading ? (

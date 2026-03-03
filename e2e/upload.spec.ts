@@ -55,8 +55,8 @@ test.describe('File Upload Zone', () => {
     expect(accept).toBeTruthy();
   });
 
-  test('Choose File button is clickable', async ({ page }) => {
-    const button = page.getByRole('button', { name: 'Choose File' });
+  test('Upload audio file button is clickable', async ({ page }) => {
+    const button = page.getByRole('button', { name: 'Upload audio file' });
     await expect(button).toBeVisible();
     await expect(button).toBeEnabled();
   });
@@ -170,17 +170,10 @@ test.describe('Upload Zone Interactions', () => {
   });
 
   test('upload zone is keyboard accessible', async ({ page }) => {
-    // Tab to the upload zone
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-
-    // The Choose File button should be focusable
-    const chooseButton = page.getByRole('button', { name: 'Choose File' });
+    // The Upload audio file button should be focusable
+    const uploadButton = page.getByRole('button', { name: 'Upload audio file' });
     // Try to focus it directly
-    await chooseButton.focus();
-    await expect(chooseButton).toBeFocused();
+    await uploadButton.focus();
+    await expect(uploadButton).toBeFocused();
   });
 });

@@ -59,11 +59,11 @@ test.describe('Login Page', () => {
     // Button should be disabled when email is empty
     await expect(submitButton).toBeDisabled();
 
-    // Enter invalid email
+    // Enter invalid email - button should remain disabled
     await emailInput.fill('invalid-email');
-    await expect(submitButton).toBeEnabled();
+    await expect(submitButton).toBeDisabled();
 
-    // Enter valid email
+    // Enter valid email - button should be enabled
     await emailInput.fill('test@example.com');
     await expect(submitButton).toBeEnabled();
   });

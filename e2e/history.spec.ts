@@ -71,13 +71,13 @@ test.describe('History Page', () => {
     });
 
     test('has link to create first transcription', async ({ page }) => {
-      const link = page.getByRole('link', { name: 'Create your first transcription' });
+      const link = page.getByRole('link', { name: 'Start transcribing' });
       await expect(link).toBeVisible();
       await expect(link).toHaveAttribute('href', '/app');
     });
 
     test('create transcription link navigates to app', async ({ page }) => {
-      await page.getByRole('link', { name: 'Create your first transcription' }).click();
+      await page.getByRole('link', { name: 'Start transcribing' }).click();
       await expect(page).toHaveURL('/app');
     });
   });
