@@ -5,7 +5,6 @@ module.exports = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './lib/**/*.{js,ts,jsx,tsx,mdx}',
-    // Keep old paths for Electron app (deferred)
     './index.html',
     './src/renderer/**/*.{js,ts,jsx,tsx}',
     './App.tsx',
@@ -49,8 +48,8 @@ module.exports = {
         ring: 'rgb(var(--color-ring) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
+        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'monospace'],
       },
       borderRadius: {
         lg: '0.75rem',
@@ -82,6 +81,18 @@ module.exports = {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
         },
+        'glow-pulse': {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.8' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        'waveform-bar': {
+          '0%, 100%': { transform: 'scaleY(0.3)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.3s ease-out',
@@ -90,6 +101,9 @@ module.exports = {
         'slide-in-from-right': 'slide-in-from-right 0.3s ease-out',
         'pulse-slow': 'pulse-slow 2s ease-in-out infinite',
         shimmer: 'shimmer 2s infinite',
+        'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
+        float: 'float 6s ease-in-out infinite',
+        'waveform-bar': 'waveform-bar 1.2s ease-in-out infinite',
       },
     },
   },

@@ -2,52 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light theme */
+/* ========================================
+   DESIGN TOKENS — "Sonic Precision"
+   Warm gold on deep ink. Audio-grade luxury.
+   ======================================== */
+
+/* Light theme — Warm Ivory */
 :root {
   color-scheme: light;
-  --color-background: 255 255 255;
-  --color-foreground: 15 23 42;
-  --color-card: 248 250 252;
-  --color-card-foreground: 15 23 42;
-  --color-popover: 255 255 255;
-  --color-popover-foreground: 15 23 42;
-  --color-primary: 59 130 246;
+  --color-background: 250 249 245;
+  --color-foreground: 23 23 28;
+  --color-card: 244 243 237;
+  --color-card-foreground: 23 23 28;
+  --color-popover: 250 249 245;
+  --color-popover-foreground: 23 23 28;
+  --color-primary: 180 83 9;
   --color-primary-foreground: 255 255 255;
-  --color-secondary: 241 245 249;
-  --color-secondary-foreground: 15 23 42;
-  --color-muted: 241 245 249;
-  --color-muted-foreground: 100 116 139;
-  --color-accent: 241 245 249;
-  --color-accent-foreground: 15 23 42;
-  --color-destructive: 239 68 68;
-  --color-destructive-foreground: 250 250 250;
-  --color-border: 226 232 240;
-  --color-input: 226 232 240;
-  --color-ring: 59 130 246;
+  --color-secondary: 237 235 228;
+  --color-secondary-foreground: 23 23 28;
+  --color-muted: 237 235 228;
+  --color-muted-foreground: 107 107 115;
+  --color-accent: 237 235 228;
+  --color-accent-foreground: 23 23 28;
+  --color-destructive: 220 38 38;
+  --color-destructive-foreground: 255 255 255;
+  --color-border: 224 221 212;
+  --color-input: 224 221 212;
+  --color-ring: 180 83 9;
+  --glow-color: 180 83 9;
 }
 
-/* Dark theme */
+/* Dark theme — Deep Ink */
 .dark {
   color-scheme: dark;
-  --color-background: 10 10 10;
-  --color-foreground: 250 250 250;
-  --color-card: 20 20 20;
-  --color-card-foreground: 250 250 250;
-  --color-popover: 20 20 20;
-  --color-popover-foreground: 250 250 250;
-  --color-primary: 59 130 246;
-  --color-primary-foreground: 255 255 255;
-  --color-secondary: 39 39 42;
-  --color-secondary-foreground: 250 250 250;
-  --color-muted: 39 39 42;
-  --color-muted-foreground: 161 161 170;
-  --color-accent: 39 39 42;
-  --color-accent-foreground: 250 250 250;
+  --color-background: 8 8 15;
+  --color-foreground: 245 244 240;
+  --color-card: 16 16 25;
+  --color-card-foreground: 245 244 240;
+  --color-popover: 16 16 25;
+  --color-popover-foreground: 245 244 240;
+  --color-primary: 251 191 36;
+  --color-primary-foreground: 10 10 15;
+  --color-secondary: 24 24 34;
+  --color-secondary-foreground: 245 244 240;
+  --color-muted: 24 24 34;
+  --color-muted-foreground: 148 148 158;
+  --color-accent: 24 24 34;
+  --color-accent-foreground: 245 244 240;
   --color-destructive: 239 68 68;
-  --color-destructive-foreground: 250 250 250;
-  --color-border: 39 39 42;
-  --color-input: 39 39 42;
-  --color-ring: 59 130 246;
+  --color-destructive-foreground: 255 255 255;
+  --color-border: 32 32 44;
+  --color-input: 32 32 44;
+  --color-ring: 251 191 36;
+  --glow-color: 251 191 36;
 }
 
 @layer base {
@@ -71,28 +78,33 @@
     @apply bg-card/80 backdrop-blur-xl border border-border;
   }
 
-  /* Gradient text */
+  /* Gradient text — warm gold-to-orange */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent;
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, rgb(var(--color-primary)), #f97316, #fb923c);
   }
 
   /* Button variants */
   .btn-primary {
     @apply bg-primary text-primary-foreground hover:bg-primary/90
-           px-4 py-2 rounded-lg font-medium transition-all duration-150
+           px-4 py-2 rounded-lg font-semibold transition-all duration-200
            focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background
            active:scale-[0.98];
   }
 
+  .btn-primary:hover {
+    box-shadow: 0 0 24px rgb(var(--glow-color) / 0.25);
+  }
+
   .btn-secondary {
     @apply bg-secondary text-secondary-foreground hover:bg-secondary/80
-           px-4 py-2 rounded-lg font-medium transition-all duration-150
+           px-4 py-2 rounded-lg font-medium transition-all duration-200
            border border-border active:scale-[0.98];
   }
 
   .btn-ghost {
     @apply hover:bg-accent hover:text-accent-foreground
-           px-4 py-2 rounded-lg font-medium transition-all duration-150
+           px-4 py-2 rounded-lg font-medium transition-all duration-200
            active:scale-[0.98];
   }
 
@@ -108,7 +120,7 @@
   /* Card styles */
   .card {
     @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm
-           transition-colors duration-150;
+           transition-all duration-200;
   }
 
   .card-header {
@@ -206,6 +218,25 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Noise texture background */
+  .noise-bg {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+  }
+
+  /* Glow utilities */
+  .glow-sm {
+    box-shadow: 0 0 15px rgb(var(--glow-color) / 0.15);
+  }
+
+  .glow-md {
+    box-shadow: 0 0 30px rgb(var(--glow-color) / 0.2);
+  }
+
+  .glow-lg {
+    box-shadow: 0 0 60px rgb(var(--glow-color) / 0.25);
   }
 }
 
