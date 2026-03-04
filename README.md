@@ -162,3 +162,48 @@ All models are **free and open-source** - no API keys required:
 - **Wav2Vec2**: HuggingFace Transformers
 
 Models are cached after first download in `~/.cache/` directories.
+
+---
+
+## 🎨 Frontend Design
+
+### UI Screenshots
+
+OpenTranscribe features a **Sonic Precision** design system with warm gold on deep ink, creating an audio-grade luxury aesthetic.
+
+#### Landing Page
+![Landing](assets/screenshots/landing.png)
+*Marketing page showcasing features, pricing, and testimonials*
+
+#### Transcription Interface
+![Transcribe](assets/screenshots/transcribe.png)
+*Main transcription UI with audio player and text editor*
+
+#### Model Comparison
+![Comparison](assets/screenshots/comparison.png)
+*Compare outputs from all 5 STT models side-by-side*
+
+#### Export Options
+![Export](assets/screenshots/export.png)
+*Export transcriptions to multiple formats (TXT, SRT, VTT, DOCX, JSON)*
+
+### Design System
+
+| Component | Description |
+|-----------|-------------|
+| **Color Palette** | Warm gold (#F59E0B) on deep ink background, ivory light mode |
+| **Typography** | Inter font family with careful attention to readability |
+| **Layout** | Clean, focused layouts with generous whitespace |
+| **Animations** | Subtle waveform animations, smooth transitions |
+| **Glass Effects** | Backdrop blur panels for depth and hierarchy |
+
+### Key UI Components
+
+1. **Upload Zone** - Drag-and-drop area with visual feedback
+2. **Audio Player** - Custom waveform visualization with playback controls
+3. **Model Selector** - Radio buttons for choosing STT engines
+4. **Transcript Editor** - Monaco-style text editor with line numbers
+5. **Diff Viewer** - Highlighted differences between model outputs
+6. **Export Menu** - Format selection with preview
+
+> **Note**: Screenshots are stored in `assets/screenshots/`. Run the application and use your browser's dev tools to capture updated screenshots as needed.
