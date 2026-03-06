@@ -113,6 +113,15 @@ function initSchema(database: Database.Database): void {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    -- User settings table (M15: persist user preferences)
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      default_model TEXT DEFAULT 'faster-whisper',
+      default_language TEXT DEFAULT 'auto',
+      email_notifications INTEGER DEFAULT 1,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
     -- Rate limiting table
     CREATE TABLE IF NOT EXISTS rate_limits (
       key TEXT PRIMARY KEY,
@@ -132,7 +141,22 @@ function initSchema(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_transcriptions_status ON transcriptions(status);
     CREATE INDEX IF NOT EXISTS idx_transcriptions_fingerprint ON transcriptions(audio_fingerprint);
     CREATE INDEX IF NOT EXISTS idx_usage_logs_user ON usage_logs(user_id, created_at);
+    -- M6: Composite index for paginated history queries (ORDER BY created_at DESC)
+    CREATE INDEX IF NOT EXISTS idx_transcriptions_user_created ON transcriptions(user_id, created_at DESC);
   `);
+
+  // M8: Clean up expired sessions and magic links on startup
+  cleanupExpired(database);
+}
+
+// M8: Clean up expired sessions and magic links on DB init
+function cleanupExpired(database: Database.Database): void {
+  const now = new Date().toISOString();
+  const sessions = database.prepare('DELETE FROM sessions WHERE expires_at < ?').run(now);
+  const links = database.prepare('DELETE FROM magic_links WHERE expires_at < ?').run(now);
+  if (sessions.changes > 0 || links.changes > 0) {
+    console.log(`DB cleanup: removed ${sessions.changes} expired sessions, ${links.changes} expired magic links`);
+  }
 }
 
 // Close database connection gracefully

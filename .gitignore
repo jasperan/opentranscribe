@@ -87,6 +87,7 @@ certs/
 config.yaml
 
 dogfood-output/
+static_analysis_semgrep*/
 
 
 # OpenCode-generated documentation (local reference only)

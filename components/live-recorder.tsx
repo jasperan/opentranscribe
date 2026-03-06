@@ -334,6 +334,16 @@ export default function LiveRecorder({ onTranscriptionComplete, onSave }: LiveRe
           if (selectedMode === 'push_to_talk' && !isPushToTalkActive) return;
 
           const inputData = event.inputBuffer.getChannelData(0);
+
+          // m8: Detect audio clipping (>5% of samples at max amplitude)
+          let clippedSamples = 0;
+          for (let i = 0; i < inputData.length; i++) {
+            if (Math.abs(inputData[i]) >= 0.99) clippedSamples++;
+          }
+          if (clippedSamples / inputData.length > 0.05) {
+            console.warn('Audio clipping detected - consider reducing microphone volume');
+          }
+
           const resampledData = resample(inputData, nativeSampleRate, targetSampleRate);
           const pcmData = new Int16Array(resampledData.length);
           for (let i = 0; i < resampledData.length; i++) {

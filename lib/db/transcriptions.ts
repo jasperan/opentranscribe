@@ -45,15 +45,20 @@ export function createTranscription(
   return getTranscriptionById(id)!;
 }
 
+// Raw DB row type before boolean conversion
+interface TranscriptionRow extends Omit<Transcription, 'has_diarization'> {
+  has_diarization: number;
+}
+
+function rowToTranscription(row: TranscriptionRow): Transcription {
+  return { ...row, has_diarization: Boolean(row.has_diarization) };
+}
+
 export function getTranscriptionById(id: string): Transcription | null {
   const db = getDb();
-  const row = db.prepare('SELECT * FROM transcriptions WHERE id = ?').get(id) as any;
+  const row = db.prepare('SELECT * FROM transcriptions WHERE id = ?').get(id) as TranscriptionRow | undefined;
   if (!row) return null;
-
-  return {
-    ...row,
-    has_diarization: Boolean(row.has_diarization),
-  };
+  return rowToTranscription(row);
 }
 
 export function getUserTranscriptions(
@@ -69,12 +74,9 @@ export function getUserTranscriptions(
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`
     )
-    .all(userId, limit, offset) as any[];
+    .all(userId, limit, offset) as TranscriptionRow[];
 
-  return rows.map((row) => ({
-    ...row,
-    has_diarization: Boolean(row.has_diarization),
-  }));
+  return rows.map(rowToTranscription);
 }
 
 export function updateTranscriptionStatus(
@@ -154,14 +156,10 @@ export function findByFingerprint(
        ORDER BY created_at DESC
        LIMIT 1`
     )
-    .get(userId, fingerprint) as any;
+    .get(userId, fingerprint) as TranscriptionRow | undefined;
 
   if (!row) return null;
-
-  return {
-    ...row,
-    has_diarization: Boolean(row.has_diarization),
-  };
+  return rowToTranscription(row);
 }
 
 export function getTranscriptionCount(userId: string): number {

@@ -12,6 +12,10 @@ const options = {
   cert: fs.readFileSync(path.join(__dirname, 'certs/localhost.pem')),
 };
 
+// m7: Connection pooling via keep-alive agents
+const frontendAgent = new http.Agent({ keepAlive: true, maxSockets: 10, keepAliveMsecs: 30000 });
+const backendAgent = new http.Agent({ keepAlive: true, maxSockets: 10, keepAliveMsecs: 30000 });
+
 const proxy = https.createServer(options, (req, res) => {
   // Route /ws/* and backend API to backend, everything else to frontend
   const isBackendRoute = req.url.startsWith('/ws/') || req.url.startsWith('/api/transcription/');
@@ -23,6 +27,7 @@ const proxy = https.createServer(options, (req, res) => {
       port: targetPort,
       path: req.url,
       method: req.method,
+      agent: isBackendRoute ? backendAgent : frontendAgent,
       headers: {
         ...req.headers,
         host: `localhost:${targetPort}`,

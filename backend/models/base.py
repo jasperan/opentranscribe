@@ -12,6 +12,7 @@ class Segment:
     start: float  # Start time in seconds
     end: float    # End time in seconds
     text: str     # Transcribed text
+    confidence: float = 0.0  # Per-segment confidence (0.0-1.0)
 
 
 @dataclass
@@ -22,6 +23,7 @@ class TranscriptionResult:
     language: str = "unknown"           # Detected/used language
     model_name: str = "unknown"         # Which model produced this
     duration: float = 0.0               # Processing time in seconds
+    language_confidence: float = 0.0    # Confidence in language detection (0.0-1.0)
 
 
 class BaseTranscriber(ABC):

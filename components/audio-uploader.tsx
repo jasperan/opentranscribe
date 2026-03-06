@@ -1,5 +1,7 @@
 'use client';
 
+import { MAX_UPLOAD_SIZE_MB } from '@/lib/constants';
+
 import { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -43,7 +45,7 @@ const audioExamples = [
 export default function AudioUploader({
   onFileSelect,
   disabled = false,
-  maxSizeMB = 500,
+  maxSizeMB = MAX_UPLOAD_SIZE_MB,
 }: AudioUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);

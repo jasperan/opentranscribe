@@ -7,17 +7,20 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Request, Web
 from fastapi.middleware.cors import CORSMiddleware
 import base64
 import asyncio
-import tempfile
 import os
 import uuid
-from typing import Optional
-import logging
-import hashlib
 import time
+from typing import Optional
+from concurrent.futures import ThreadPoolExecutor
+import logging
 
 from models import get_model, list_models, get_available_models, get_default_model
 from diff import DiffEngine
 from utils.audio import is_video_file, extract_audio_from_video
+from utils.upload import (
+    save_upload_to_disk, get_transcriber, cleanup_files,
+    validate_language, get_audio_duration, MAX_UPLOAD_SIZE,
+)
 from streaming import VoskStreamingTranscriber, WhisperStreamingTranscriber
 from streaming.vosk_streaming import StreamingConfig, RecordingMode, OutputMode
 from streaming.whisper_streaming import StreamingConfig as WhisperConfig, StreamingMode
@@ -29,25 +32,29 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Verbatim Transcription Service",
     description="Internal multi-model speech-to-text transcription API",
-    version="3.0.0",
+    version="3.1.0",
     docs_url="/docs" if os.getenv("VERBATIM_ENV", "development") == "development" else None,
     redoc_url=None,
 )
 
+# Thread pool for parallel model comparison (C2)
+_executor = ThreadPoolExecutor(max_workers=4)
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    """Log all requests for debugging (development only)."""
-    start_time = time.time()
-    logger.info(f"Request: {request.method} {request.url.path}")
-    response = await call_next(request)
-    duration = time.time() - start_time
-    logger.info(f"Response: {response.status_code} ({duration:.3f}s)")
-    return response
+
+# Conditional request logging (m1: only in development)
+if os.getenv("VERBATIM_ENV", "development") == "development":
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        """Log all requests for debugging (development only)."""
+        start_time = time.time()
+        logger.info(f"Request: {request.method} {request.url.path}")
+        response = await call_next(request)
+        duration = time.time() - start_time
+        logger.info(f"Response: {response.status_code} ({duration:.3f}s)")
+        return response
 
 
 # CORS - Only allow localhost origins (Next.js frontend)
-# In production, this service is not exposed externally
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -60,116 +67,50 @@ app.add_middleware(
 )
 
 
-def compute_audio_fingerprint(file_path: str) -> str:
-    """Compute SHA-256 fingerprint of audio file for duplicate detection."""
-    sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            sha256.update(chunk)
-    return sha256.hexdigest()
+# ============================================================================
+# Session timeout management (M5)
+# ============================================================================
+SESSION_TIMEOUT_SECONDS = 1800  # 30 minutes
+
+# Store active streaming sessions with timestamps
+streaming_sessions: dict[str, tuple] = {}  # session_id -> (transcriber, last_active)
+live_sessions: dict[str, tuple] = {}
 
 
-def get_audio_duration(file_path: str) -> float:
-    """Get audio duration in seconds using ffprobe if available."""
-    try:
-        import subprocess
-        result = subprocess.run(
-            ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
-             "-of", "default=noprint_wrappers=1:nokey=1", file_path],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return float(result.stdout.strip())
-    except Exception as e:
-        logger.warning(f"Could not get audio duration: {e}")
-    return 0.0
+def _register_session(sessions: dict, session_id: str, transcriber) -> None:
+    sessions[session_id] = (transcriber, time.time())
 
 
-# Maximum file upload size (500 MB)
-MAX_UPLOAD_SIZE = 500 * 1024 * 1024
-
-# Audio magic bytes for validation
-AUDIO_MAGIC_BYTES = {
-    b'\xff\xfb': 'audio/mpeg',      # MP3
-    b'\xff\xfa': 'audio/mpeg',      # MP3
-    b'\xff\xf3': 'audio/mpeg',      # MP3
-    b'\xff\xf2': 'audio/mpeg',      # MP3
-    b'ID3': 'audio/mpeg',           # MP3 with ID3 tag
-    b'RIFF': 'audio/wav',           # WAV
-    b'fLaC': 'audio/flac',          # FLAC
-    b'OggS': 'audio/ogg',           # OGG
-    b'\x00\x00\x00': 'audio/mp4',   # M4A/MP4 (partial)
-}
-
-# Video magic bytes for validation
-VIDEO_MAGIC_BYTES = {
-    b'\x00\x00\x00': 'video/mp4',   # MP4/M4V (ftyp box)
-    b'\x1a\x45\xdf\xa3': 'video/webm',  # WebM/MKV (EBML header)
-    b'RIFF': 'video/avi',           # AVI
-    b'\x00\x00\x01\xb3': 'video/mpeg',  # MPEG
-    b'\x00\x00\x01\xba': 'video/mpeg',  # MPEG-PS
-}
-
-# Supported content types
-SUPPORTED_AUDIO_TYPES = {'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/ogg', 'audio/mp4', 'audio/m4a', 'audio/webm'}
-SUPPORTED_VIDEO_TYPES = {'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'video/mpeg', 'video/avi'}
+def _touch_session(sessions: dict, session_id: str) -> None:
+    if session_id in sessions:
+        transcriber, _ = sessions[session_id]
+        sessions[session_id] = (transcriber, time.time())
 
 
-def validate_media_file(file_path: str, content_type: str) -> tuple[bool, str]:
-    """
-    Validate audio or video file by checking magic bytes.
-
-    Returns:
-        Tuple of (is_valid, media_type) where media_type is 'audio', 'video', or 'unknown'
-    """
-    try:
-        with open(file_path, "rb") as f:
-            header = f.read(12)
-
-        # Check against known audio magic bytes
-        for magic, _ in AUDIO_MAGIC_BYTES.items():
-            if header.startswith(magic):
-                return True, 'audio'
-
-        # Check for MP4/M4A/MOV container (ftyp box)
-        if b'ftyp' in header:
-            # Need to determine if it's audio-only (M4A) or video (MP4/MOV)
-            # For simplicity, check content-type or extension
-            if content_type and content_type.startswith('audio/'):
-                return True, 'audio'
-            # Assume video for MP4/MOV containers
-            return True, 'video'
-
-        # Check against known video magic bytes
-        for magic, _ in VIDEO_MAGIC_BYTES.items():
-            if header.startswith(magic):
-                return True, 'video'
-
-        # Check for MKV/WebM (EBML header)
-        if header[:4] == b'\x1a\x45\xdf\xa3':
-            return True, 'video'
-
-        logger.warning(f"File failed magic byte validation: {header[:8].hex()}")
-        return False, 'unknown'
-    except Exception as e:
-        logger.error(f"Failed to validate media file: {e}")
-        return False, 'unknown'
+def _cleanup_stale_sessions(sessions: dict) -> None:
+    """Remove sessions that haven't been active for SESSION_TIMEOUT_SECONDS."""
+    now = time.time()
+    stale = [sid for sid, (t, ts) in sessions.items() if now - ts > SESSION_TIMEOUT_SECONDS]
+    for sid in stale:
+        transcriber, _ = sessions.pop(sid, (None, None))
+        if transcriber is not None and hasattr(transcriber, 'is_recording') and transcriber.is_recording:
+            try:
+                transcriber.stop_session()
+            except Exception:
+                pass
+        logger.info(f"Cleaned up stale session: {sid}")
 
 
-def validate_audio_file(file_path: str, content_type: str) -> bool:
-    """Validate audio file by checking magic bytes, not just extension. (Legacy wrapper)"""
-    is_valid, media_type = validate_media_file(file_path, content_type)
-    return is_valid and media_type == 'audio'
-
+# ============================================================================
+# REST endpoints
+# ============================================================================
 
 @app.get("/")
 async def root():
     """API status endpoint."""
     return {
         "service": "Verbatim Transcription Service",
-        "version": "3.0.0",
+        "version": "3.1.0",
         "status": "running",
         "default_model": get_default_model()
     }
@@ -178,6 +119,9 @@ async def root():
 @app.get("/health")
 async def health():
     """Health check endpoint."""
+    # Opportunistically clean up stale sessions
+    _cleanup_stale_sessions(streaming_sessions)
+    _cleanup_stale_sessions(live_sessions)
     return {"status": "healthy", "service": "verbatim-transcription"}
 
 
@@ -201,116 +145,43 @@ async def transcribe_audio(
     Transcribe audio or video file using selected STT model.
 
     For video files, audio is automatically extracted before transcription.
-
-    Parameters:
-    - file: Audio or video file to transcribe (MP3, WAV, FLAC, OGG, M4A, MP4, MKV, AVI, MOV)
-    - language: Optional language code ('en', 'es', 'auto'). Default: auto-detect
-    - model: STT model to use. Default: faster-whisper
-
-    Returns:
-    - text: Transcribed text
-    - language: Detected/used language
-    - model: Model used for transcription
-    - duration: Processing time in seconds
-    - audio_duration: Audio file duration in seconds
-    - fingerprint: Audio file fingerprint for duplicate detection
-    - segments: Word/phrase level timestamps
-    - source_type: 'audio' or 'video' indicating original file type
     """
-    tmp_path = None
+    uploaded = None
     extracted_audio_path = None
     try:
-        # Accept both audio and video files
-        content_type = file.content_type or ""
-        is_audio = content_type.startswith("audio/")
-        is_video = content_type.startswith("video/")
+        # Validate inputs (m5: language validation)
+        lang = validate_language(language)
+        transcriber = get_transcriber(model)
 
-        # Safe filename extraction
-        filename = file.filename or ""
-        # Strip path components to prevent directory traversal
-        filename = os.path.basename(filename)
+        # Stream upload to disk (C1+M1: shared helper, no full-memory load)
+        uploaded = await save_upload_to_disk(file, allow_video=True)
 
-        if not is_audio and not is_video:
-            # Check by file extension as fallback
-            suffix = os.path.splitext(filename)[1].lower()
-            if suffix in {'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.wma', '.opus'}:
-                is_audio = True
-            elif suffix in {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'}:
-                is_video = True
-            else:
-                raise HTTPException(
-                    status_code=400,
-                    detail="File must be an audio or video file"
-                )
+        # Determine audio path (extract from video if needed)
+        audio_path = uploaded.tmp_path
+        source_type = uploaded.media_type
 
-        # Get model (use default if not specified)
-        model_id = model or get_default_model()
-
-        try:
-            transcriber = get_model(model_id)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-        if not transcriber.is_available():
-            raise HTTPException(
-                status_code=400,
-                detail=f"Model '{model_id}' is not available. Install its dependencies."
-            )
-
-        # Save uploaded file temporarily
-        suffix = os.path.splitext(filename)[1] if filename else ".mp3"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-            content = await file.read()
-            if len(content) > MAX_UPLOAD_SIZE:
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB."
-                )
-            tmp_file.write(content)
-            tmp_path = tmp_file.name
-
-        # Validate media file magic bytes
-        is_valid, media_type = validate_media_file(tmp_path, content_type)
-        if not is_valid:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid file format. File does not appear to be a valid audio or video file."
-            )
-
-        # Determine the audio file to transcribe
-        audio_path = tmp_path
-        source_type = media_type
-
-        # If it's a video file, extract audio first
-        if media_type == 'video' or is_video_file(tmp_path):
-            logger.info(f"Video file detected, extracting audio from: {file.filename}")
+        if uploaded.media_type == 'video' or is_video_file(uploaded.tmp_path):
+            logger.info(f"Video file detected, extracting audio")
             try:
-                extracted_audio_path, was_extracted = extract_audio_from_video(tmp_path)
+                extracted_audio_path, was_extracted = extract_audio_from_video(uploaded.tmp_path)
                 if was_extracted:
                     audio_path = extracted_audio_path
                     source_type = 'video'
-                    logger.info(f"Audio extracted successfully for transcription")
             except RuntimeError as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to extract audio from video: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Failed to extract audio from video: {str(e)}")
 
-        # Compute fingerprint and duration from the original file
-        fingerprint = compute_audio_fingerprint(tmp_path)
         audio_duration = get_audio_duration(audio_path)
-
-        # Transcribe the audio
-        result = transcriber.transcribe(audio_path, language=language)
+        result = transcriber.transcribe(audio_path, language=lang)
 
         return {
+            "status": "success",
             "text": result.text,
             "language": result.language,
             "detected_language": result.language,
             "model": result.model_name,
             "processing_duration": result.duration,
             "audio_duration": audio_duration,
-            "fingerprint": fingerprint,
+            "fingerprint": uploaded.fingerprint,
             "source_type": source_type,
             "segments": [
                 {"start": s.start, "end": s.end, "text": s.text}
@@ -322,16 +193,12 @@ async def transcribe_audio(
         raise
     except Exception as e:
         logger.exception("Transcription failed")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Transcription failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
     finally:
-        # Clean up temp files
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-        if extracted_audio_path and os.path.exists(extracted_audio_path):
-            os.unlink(extracted_audio_path)
+        cleanup_files(
+            uploaded.tmp_path if uploaded else None,
+            extracted_audio_path,
+        )
 
 
 @app.post("/diarize")
@@ -343,100 +210,61 @@ async def diarize_audio(
 ):
     """
     Transcribe audio with speaker diarization (who said what).
-
     This endpoint uses 2x minutes due to additional processing.
-
-    Parameters:
-    - file: Audio file to transcribe
-    - language: Optional language code
-    - model: STT model to use (default: faster-whisper)
-    - num_speakers: Optional hint for number of speakers
-
-    Returns:
-    - text: Full transcribed text
-    - speakers: List of identified speakers
-    - segments: Segments with speaker labels
-    - processing_duration: Time taken
-    - audio_duration: Audio file duration
-    - fingerprint: Audio file fingerprint
     """
-    tmp_path = None
+    uploaded = None
     try:
-        # Basic content-type check
-        if not file.content_type or not file.content_type.startswith("audio/"):
-            raise HTTPException(
-                status_code=400,
-                detail="File must be an audio file"
-            )
+        lang = validate_language(language)
+        transcriber = get_transcriber(model)
 
-        # Safe filename extraction
-        filename = os.path.basename(file.filename) if file.filename else ""
+        # m6: validate num_speakers if provided
+        if num_speakers is not None and (num_speakers < 1 or num_speakers > 20):
+            raise HTTPException(status_code=400, detail="num_speakers must be between 1 and 20")
 
-        # Save uploaded file temporarily
-        suffix = os.path.splitext(filename)[1] if filename else ".mp3"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-            content = await file.read()
-            if len(content) > MAX_UPLOAD_SIZE:
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB."
-                )
-            tmp_file.write(content)
-            tmp_path = tmp_file.name
+        uploaded = await save_upload_to_disk(file, allow_video=False)
+        audio_duration = get_audio_duration(uploaded.tmp_path)
 
-        # Validate audio file magic bytes
-        if not validate_audio_file(tmp_path, file.content_type):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid audio file format."
-            )
-
-        # Compute fingerprint and duration
-        fingerprint = compute_audio_fingerprint(tmp_path)
-        audio_duration = get_audio_duration(tmp_path)
-
-        # Get transcription model
-        model_id = model or get_default_model()
-        try:
-            transcriber = get_model(model_id)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-        if not transcriber.is_available():
-            raise HTTPException(
-                status_code=400,
-                detail=f"Model '{model_id}' is not available."
-            )
-
-        # First, get transcription
         start_time = time.time()
-        transcription = transcriber.transcribe(tmp_path, language=language)
+        transcription = transcriber.transcribe(uploaded.tmp_path, language=lang)
 
-        # Try to run diarization with pyannote
+        # Try pyannote diarization (C4: real implementation instead of mock)
         try:
             from pyannote.audio import Pipeline
-            import torch
 
-            # Check if pyannote model is available
-            # Note: This requires HF token and model download
-            # For MVP, we'll provide a simplified version
+            hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
+            if not hf_token:
+                raise ImportError("HF_TOKEN not set - pyannote requires authentication")
 
-            # Placeholder: Return transcription with mock speaker labels
-            # TODO: Implement full pyannote integration
-            speakers = ["Speaker 1", "Speaker 2"]
+            pipeline = Pipeline.from_pretrained(
+                "pyannote/speaker-diarization-3.1",
+                use_auth_token=hf_token
+            )
+
+            diarization_kwargs = {}
+            if num_speakers is not None:
+                diarization_kwargs["num_speakers"] = num_speakers
+
+            diarization = pipeline(uploaded.tmp_path, **diarization_kwargs)
+
+            speakers = sorted(set(label for _, _, label in diarization.itertracks(yield_label=True)))
             segments_with_speakers = []
-
-            for i, segment in enumerate(transcription.segments):
+            for segment in transcription.segments:
+                seg_mid = (segment.start + segment.end) / 2
+                speaker = None
+                for turn, _, label in diarization.itertracks(yield_label=True):
+                    if turn.start <= seg_mid <= turn.end:
+                        speaker = label
+                        break
                 segments_with_speakers.append({
                     "start": segment.start,
                     "end": segment.end,
                     "text": segment.text,
-                    "speaker": speakers[i % len(speakers)]  # Alternating for demo
+                    "speaker": speaker or (speakers[0] if speakers else None)
                 })
 
             processing_duration = time.time() - start_time
-
             return {
+                "status": "success",
                 "text": transcription.text,
                 "language": transcription.language,
                 "model": transcription.model_name,
@@ -444,16 +272,14 @@ async def diarize_audio(
                 "segments": segments_with_speakers,
                 "processing_duration": processing_duration,
                 "audio_duration": audio_duration,
-                "fingerprint": fingerprint,
+                "fingerprint": uploaded.fingerprint,
                 "diarization_enabled": True,
-                "diarization_note": "Full diarization requires pyannote.audio setup"
             }
 
         except ImportError:
-            # pyannote not installed - return transcription without speaker labels
             processing_duration = time.time() - start_time
-
             return {
+                "status": "success",
                 "text": transcription.text,
                 "language": transcription.language,
                 "model": transcription.model_name,
@@ -464,22 +290,18 @@ async def diarize_audio(
                 ],
                 "processing_duration": processing_duration,
                 "audio_duration": audio_duration,
-                "fingerprint": fingerprint,
+                "fingerprint": uploaded.fingerprint,
                 "diarization_enabled": False,
-                "diarization_note": "Install pyannote.audio for speaker diarization"
+                "diarization_note": "Install pyannote.audio and set HF_TOKEN for speaker diarization"
             }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.exception("Diarization failed")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Diarization failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Diarization failed: {str(e)}")
     finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+        cleanup_files(uploaded.tmp_path if uploaded else None)
 
 
 @app.post("/compare")
@@ -490,82 +312,42 @@ async def compare_models(
 ):
     """
     Run transcription with multiple models and compare results.
-
-    Parameters:
-    - file: Audio file to transcribe
-    - language: Optional language code
-    - models: Comma-separated list of model IDs to compare.
-              If not specified, uses all available models.
-
-    Returns:
-    - baseline: Reference transcription (from fastest high-accuracy model)
-    - comparisons: List of comparisons with diff details
+    Models run in parallel using a thread pool (C2).
     """
-    tmp_path = None
+    uploaded = None
     try:
-        if not file.content_type or not file.content_type.startswith("audio/"):
-            raise HTTPException(
-                status_code=400,
-                detail="File must be an audio file"
-            )
+        lang = validate_language(language)
 
-        # Determine which models to use
         if models:
             model_ids = [m.strip() for m in models.split(",")]
         else:
             model_ids = get_available_models()
 
         if not model_ids:
-            raise HTTPException(
-                status_code=400,
-                detail="No models available for comparison"
-            )
+            raise HTTPException(status_code=400, detail="No models available for comparison")
 
-        # Safe filename extraction
-        filename = os.path.basename(file.filename) if file.filename else ""
+        uploaded = await save_upload_to_disk(file, allow_video=False)
 
-        # Save uploaded file temporarily
-        suffix = os.path.splitext(filename)[1] if filename else ".mp3"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-            content = await file.read()
-            if len(content) > MAX_UPLOAD_SIZE:
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"File too large. Maximum size is {MAX_UPLOAD_SIZE // (1024*1024)} MB."
-                )
-            tmp_file.write(content)
-            tmp_path = tmp_file.name
-
-        # Validate audio file
-        if not validate_audio_file(tmp_path, file.content_type):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid audio file format."
-            )
-
-        results = []
-
-        # Run each model
-        for model_id in model_ids:
+        # C2: Run models in parallel using thread pool
+        def _run_model(model_id: str):
             try:
                 transcriber = get_model(model_id)
                 if transcriber.is_available():
-                    result = transcriber.transcribe(tmp_path, language=language)
-                    results.append(result)
+                    return transcriber.transcribe(uploaded.tmp_path, language=lang)
             except Exception as e:
                 logger.warning(f"Model {model_id} failed: {e}")
+            return None
+
+        loop = asyncio.get_event_loop()
+        futures = [loop.run_in_executor(_executor, _run_model, mid) for mid in model_ids]
+        raw_results = await asyncio.gather(*futures)
+        results = [r for r in raw_results if r is not None]
 
         if not results:
-            raise HTTPException(
-                status_code=500,
-                detail="All models failed to transcribe"
-            )
+            raise HTTPException(status_code=500, detail="All models failed to transcribe")
 
-        # Use first result as baseline
         baseline = results[0]
         diff_engine = DiffEngine(baseline)
-
-        # Compare other models against baseline
         comparisons = [diff_engine.compare(r) for r in results[1:]]
 
         return diff_engine.to_dict(comparisons)
@@ -574,36 +356,18 @@ async def compare_models(
         raise
     except Exception as e:
         logger.exception("Comparison failed")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Comparison failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {str(e)}")
     finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+        cleanup_files(uploaded.tmp_path if uploaded else None)
 
 
-# Store active streaming sessions
-streaming_sessions: dict[str, VoskStreamingTranscriber] = {}
-
+# ============================================================================
+# WebSocket streaming: Vosk (lightweight, real-time)
+# ============================================================================
 
 @app.websocket("/ws/transcribe/stream")
 async def websocket_stream(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time streaming transcription.
-
-    Protocol:
-    - Client sends: {"type": "start", "language": "en", "mode": "toggle", "output_mode": "display", "vad_enabled": false}
-    - Client sends: {"type": "audio", "data": "<base64 PCM audio>"}
-    - Client sends: {"type": "config", "vad_enabled": true, "silence_timeout": 1.5}
-    - Client sends: {"type": "stop"}
-
-    - Server sends: {"type": "ready"}
-    - Server sends: {"type": "partial", "text": "hello wor"}
-    - Server sends: {"type": "final", "text": "hello world", "confidence": 0.95, "timestamp": 1.2}
-    - Server sends: {"type": "vad", "speaking": true/false}
-    - Server sends: {"type": "error", "message": "..."}
-    """
+    """WebSocket endpoint for real-time streaming transcription (Vosk)."""
     await websocket.accept()
     session_id = str(uuid.uuid4())
     transcriber: Optional[VoskStreamingTranscriber] = None
@@ -612,19 +376,16 @@ async def websocket_stream(websocket: WebSocket):
 
     try:
         while True:
-            # Receive message from client
             data = await websocket.receive_json()
             msg_type = data.get("type")
 
             if msg_type == "start":
-                # Parse configuration
                 language = data.get("language", "en")
                 mode_str = data.get("mode", "toggle")
                 output_mode_str = data.get("output_mode", "display")
                 vad_enabled = data.get("vad_enabled", False)
                 silence_timeout = data.get("silence_timeout", 1.5)
 
-                # Map string modes to enums
                 mode_map = {
                     "push_to_talk": RecordingMode.PUSH_TO_TALK,
                     "toggle": RecordingMode.TOGGLE,
@@ -645,7 +406,6 @@ async def websocket_stream(websocket: WebSocket):
                     silence_timeout=silence_timeout,
                 )
 
-                # Create and start transcriber
                 transcriber = VoskStreamingTranscriber(config)
 
                 if not transcriber.is_available():
@@ -656,7 +416,7 @@ async def websocket_stream(websocket: WebSocket):
                     continue
 
                 result = transcriber.start_session()
-                streaming_sessions[session_id] = transcriber
+                _register_session(streaming_sessions, session_id, transcriber)
                 await websocket.send_json(result.to_dict())
 
             elif msg_type == "audio":
@@ -667,7 +427,8 @@ async def websocket_stream(websocket: WebSocket):
                     })
                     continue
 
-                # Decode base64 audio data
+                _touch_session(streaming_sessions, session_id)
+
                 try:
                     audio_data = base64.b64decode(data.get("data", ""))
                 except Exception as e:
@@ -677,13 +438,11 @@ async def websocket_stream(websocket: WebSocket):
                     })
                     continue
 
-                # Process audio chunk
                 results = transcriber.process_chunk(audio_data)
                 for result in results:
                     await websocket.send_json(result.to_dict())
 
             elif msg_type == "config":
-                # Update configuration mid-session
                 if transcriber is not None:
                     if "vad_enabled" in data:
                         transcriber.config.vad_enabled = data["vad_enabled"]
@@ -696,20 +455,11 @@ async def websocket_stream(websocket: WebSocket):
                     result = transcriber.stop_session()
                     await websocket.send_json(result.to_dict())
 
-                    # Handle auto-save if configured
-                    if transcriber.config.output_mode == OutputMode.AUTO_SAVE:
-                        # TODO: Save to history database
-                        await websocket.send_json({
-                            "type": "saved",
-                            "message": "Transcription saved to history"
-                        })
-
-                # Clean up session
-                if session_id in streaming_sessions:
-                    del streaming_sessions[session_id]
+                streaming_sessions.pop(session_id, None)
                 transcriber = None
 
             elif msg_type == "ping":
+                _touch_session(streaming_sessions, session_id)
                 await websocket.send_json({"type": "pong"})
 
     except WebSocketDisconnect:
@@ -717,34 +467,29 @@ async def websocket_stream(websocket: WebSocket):
     except Exception as e:
         logger.exception(f"WebSocket error: {e}")
         try:
-            await websocket.send_json({
-                "type": "error",
-                "message": str(e)
-            })
+            await websocket.send_json({"type": "error", "message": str(e)})
         except Exception:
             pass
     finally:
-        # Stop transcriber session to free resources
         if transcriber is not None and transcriber.is_recording:
             try:
                 transcriber.stop_session()
             except Exception:
                 pass
-        # Clean up on disconnect
-        if session_id in streaming_sessions:
-            del streaming_sessions[session_id]
+        streaming_sessions.pop(session_id, None)
         logger.info(f"WebSocket session cleaned up: {session_id}")
 
 
 @app.get("/streaming/status")
 async def streaming_status():
     """Get status of streaming transcription service."""
-    # Check if Vosk is available
     try:
         test_transcriber = VoskStreamingTranscriber()
         vosk_available = test_transcriber.is_available()
     except Exception:
         vosk_available = False
+
+    _cleanup_stale_sessions(streaming_sessions)
 
     return {
         "available": vosk_available,
@@ -757,33 +502,12 @@ async def streaming_status():
 
 
 # ============================================================================
-# Live Streaming with Faster-Whisper
+# WebSocket streaming: Faster-Whisper with Silero VAD
 # ============================================================================
-
-# Store active live streaming sessions
-live_sessions: dict[str, WhisperStreamingTranscriber] = {}
-
 
 @app.websocket("/ws/live/stream")
 async def websocket_live_stream(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time streaming transcription using faster-whisper.
-
-    This provides higher accuracy than Vosk with auto-correcting partial results.
-
-    Protocol:
-    - Client sends: {"type": "start", "language": "en", "model": "base", "mode": "vad"}
-    - Client sends: {"type": "audio", "data": "<base64 PCM audio>"}
-    - Client sends: {"type": "finalize"} (force finalize current segment)
-    - Client sends: {"type": "stop"}
-
-    - Server sends: {"type": "ready", "model": "faster-whisper-base"}
-    - Server sends: {"type": "vad", "speaking": true, "probability": 0.92}
-    - Server sends: {"type": "partial", "text": "Hello world", "confidence": 0.85}
-    - Server sends: {"type": "final", "text": "Hello world, how are you?", "duration": 2.3}
-    - Server sends: {"type": "stopped", "total_duration": 45.2}
-    - Server sends: {"type": "error", "message": "..."}
-    """
+    """WebSocket endpoint for real-time streaming transcription using faster-whisper."""
     await websocket.accept()
     session_id = str(uuid.uuid4())
     transcriber: Optional[WhisperStreamingTranscriber] = None
@@ -792,19 +516,16 @@ async def websocket_live_stream(websocket: WebSocket):
 
     try:
         while True:
-            # Receive message from client
             data = await websocket.receive_json()
             msg_type = data.get("type")
 
             if msg_type == "start":
-                # Parse configuration
-                language = data.get("language")  # None = auto-detect
+                language = data.get("language")
                 model_size = data.get("model", "base")
                 mode_str = data.get("mode", "vad")
                 vad_threshold = data.get("vad_threshold", 0.5)
                 silence_duration = data.get("silence_duration", 1.0)
 
-                # Map string mode to enum
                 mode_map = {
                     "continuous": StreamingMode.CONTINUOUS,
                     "vad": StreamingMode.VAD,
@@ -819,7 +540,6 @@ async def websocket_live_stream(websocket: WebSocket):
                     silence_duration=silence_duration,
                 )
 
-                # Create and start transcriber
                 transcriber = WhisperStreamingTranscriber(config)
 
                 if not transcriber.is_available():
@@ -830,7 +550,7 @@ async def websocket_live_stream(websocket: WebSocket):
                     continue
 
                 result = transcriber.start_session()
-                live_sessions[session_id] = transcriber
+                _register_session(live_sessions, session_id, transcriber)
                 await websocket.send_json(result.to_dict())
 
             elif msg_type == "audio":
@@ -841,11 +561,12 @@ async def websocket_live_stream(websocket: WebSocket):
                     })
                     continue
 
-                # Decode base64 audio data
+                _touch_session(live_sessions, session_id)
+
                 try:
                     audio_data = base64.b64decode(data.get("data", ""))
-                    if len(audio_data) > 0:
-                        logger.debug(f"Live audio chunk: {len(audio_data)} bytes")
+                    if len(audio_data) == 0:
+                        continue
                 except Exception as e:
                     await websocket.send_json({
                         "type": "error",
@@ -853,16 +574,20 @@ async def websocket_live_stream(websocket: WebSocket):
                     })
                     continue
 
-                # Process audio chunk
                 results = transcriber.process_chunk(audio_data)
-                if results:
-                    logger.debug(f"Live transcription results: {len(results)} items")
                 for result in results:
-                    logger.debug(f"Sending result: {result.to_dict()}")
                     await websocket.send_json(result.to_dict())
 
+            elif msg_type == "config":
+                # m3: Unified config update (same as Vosk endpoint)
+                if transcriber is not None:
+                    if "vad_threshold" in data:
+                        transcriber.config.vad_threshold = data["vad_threshold"]
+                    if "silence_duration" in data:
+                        transcriber.config.silence_duration = data["silence_duration"]
+                    await websocket.send_json({"type": "config_updated"})
+
             elif msg_type == "finalize":
-                # Force finalization of current buffer (for push-to-talk release)
                 if transcriber is not None and transcriber.is_recording:
                     result = transcriber.force_finalize()
                     if result:
@@ -873,12 +598,11 @@ async def websocket_live_stream(websocket: WebSocket):
                     result = transcriber.stop_session()
                     await websocket.send_json(result.to_dict())
 
-                # Clean up session
-                if session_id in live_sessions:
-                    del live_sessions[session_id]
+                live_sessions.pop(session_id, None)
                 transcriber = None
 
             elif msg_type == "ping":
+                _touch_session(live_sessions, session_id)
                 await websocket.send_json({"type": "pong"})
 
     except WebSocketDisconnect:
@@ -886,42 +610,36 @@ async def websocket_live_stream(websocket: WebSocket):
     except Exception as e:
         logger.exception(f"Live WebSocket error: {e}")
         try:
-            await websocket.send_json({
-                "type": "error",
-                "message": str(e)
-            })
+            await websocket.send_json({"type": "error", "message": str(e)})
         except Exception:
             pass
     finally:
-        # Stop transcriber session to free resources
         if transcriber is not None and transcriber.is_recording:
             try:
                 transcriber.stop_session()
             except Exception:
                 pass
-        # Clean up on disconnect
-        if session_id in live_sessions:
-            del live_sessions[session_id]
+        live_sessions.pop(session_id, None)
         logger.info(f"Live WebSocket session cleaned up: {session_id}")
 
 
 @app.get("/live/status")
 async def live_status():
     """Get status of live streaming transcription service."""
-    # Check if faster-whisper is available
     try:
         test_transcriber = WhisperStreamingTranscriber()
         whisper_available = test_transcriber.is_available()
     except Exception:
         whisper_available = False
 
-    # Check if VAD is available
     try:
         from streaming.whisper_streaming import SileroVAD
         vad = SileroVAD()
         vad_available = vad.is_available()
     except Exception:
         vad_available = False
+
+    _cleanup_stale_sessions(live_sessions)
 
     return {
         "available": whisper_available,
@@ -948,5 +666,4 @@ if __name__ == "__main__":
     print(f"Available models: {get_available_models()}")
     print("=" * 60)
 
-    # Bind to localhost only - not accessible externally
     uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")

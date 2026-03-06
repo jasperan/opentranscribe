@@ -16,9 +16,10 @@ import {
 } from './db/sessions';
 import { getOrCreateUser, getUserById, updateLastActive, User } from './db/users';
 import { sendMagicLinkEmail } from './email';
+import { getConfig } from './config';
 
 const SESSION_COOKIE_NAME = 'verbatim_session';
-const MAGIC_LINK_RATE_LIMIT = 3; // per hour
+const MAGIC_LINK_RATE_LIMIT = (() => { try { return getConfig().auth.rate_limit_magic_links_per_hour; } catch { return 3; } })();
 
 export interface AuthResult {
   success: boolean;

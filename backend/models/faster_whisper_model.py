@@ -102,7 +102,8 @@ class FasterWhisperTranscriber(BaseTranscriber):
             segments.append(Segment(
                 start=seg.start,
                 end=seg.end,
-                text=seg.text.strip()
+                text=seg.text.strip(),
+                confidence=seg.avg_logprob if hasattr(seg, 'avg_logprob') else 0.0,
             ))
             full_text_parts.append(seg.text.strip())
 
@@ -113,7 +114,8 @@ class FasterWhisperTranscriber(BaseTranscriber):
         return TranscriptionResult(
             text=full_text,
             segments=segments,
-            language=info.language or "unknown"
+            language=info.language or "unknown",
+            language_confidence=info.language_probability if hasattr(info, 'language_probability') else 0.0,
         )
 
     def is_available(self) -> bool:

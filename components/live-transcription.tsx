@@ -77,6 +77,16 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
     }
   }, [finalText, outputMode]);
 
+  // M7: Send config updates over existing WebSocket without reconnecting
+  useEffect(() => {
+    if (!isRecording || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({
+      type: 'config',
+      vad_enabled: recordingMode === 'vad' || recordingMode === 'toggle_vad',
+      silence_timeout: silenceTimeout,
+    }));
+  }, [isRecording, recordingMode, silenceTimeout]);
+
   const connectWebSocket = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
       // Use dynamic protocol/host detection for WebSocket connection
@@ -391,12 +401,11 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
                       <button
                         key={mode}
                         onClick={() => setRecordingMode(mode)}
-                        disabled={isRecording}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                           recordingMode === mode
                             ? 'bg-primary text-white'
                             : 'bg-secondary hover:bg-accent'
-                        } ${isRecording ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        }`}
                       >
                         <Icon className="w-4 h-4" />
                         <span className="hidden sm:inline">{modeLabels[mode]}</span>
@@ -416,12 +425,11 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
                       <button
                         key={mode}
                         onClick={() => setOutputMode(mode)}
-                        disabled={isRecording}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                           outputMode === mode
                             ? 'bg-primary text-white'
                             : 'bg-secondary hover:bg-accent'
-                        } ${isRecording ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        }`}
                       >
                         <Icon className="w-4 h-4" />
                         {outputLabels[mode]}
@@ -444,7 +452,6 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
                     step="0.5"
                     value={silenceTimeout}
                     onChange={(e) => setSilenceTimeout(parseFloat(e.target.value))}
-                    disabled={isRecording}
                     className="w-full"
                   />
                 </div>

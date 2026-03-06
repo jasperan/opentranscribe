@@ -150,9 +150,13 @@ class DiffEngine:
                     ))
                     word_index += 1
 
-        # Calculate match percentage
-        total_words = max(len(self.baseline_words), 1)
-        match_percent = (matches / total_words) * 100
+        # M13: Use F1-score instead of biased recall-only metric
+        precision = matches / len(other_words) if other_words else 0.0
+        recall = matches / len(self.baseline_words) if self.baseline_words else 0.0
+        if precision + recall > 0:
+            match_percent = 2 * (precision * recall) / (precision + recall) * 100
+        else:
+            match_percent = 0.0
 
         return ModelComparison(
             model_name=other.model_name,

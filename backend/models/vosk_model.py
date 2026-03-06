@@ -3,6 +3,7 @@ from typing import Optional
 import logging
 import os
 import json
+import hashlib
 import wave
 
 from . import register_model
@@ -13,6 +14,9 @@ logger = logging.getLogger(__name__)
 # Default model paths
 VOSK_MODEL_PATH = os.environ.get("VOSK_MODEL_PATH", os.path.expanduser("~/.cache/vosk"))
 VOSK_MODEL_NAME = "vosk-model-small-en-us-0.15"
+VOSK_MODEL_URL = f"https://alphacephei.com/vosk/models/{VOSK_MODEL_NAME}.zip"
+# m2: SHA-256 checksum for download integrity validation
+VOSK_MODEL_SHA256 = os.environ.get("VOSK_MODEL_SHA256", "")
 
 
 @register_model
@@ -25,9 +29,27 @@ class VoskTranscriber(BaseTranscriber):
     supports_streaming = True
     requires_gpu = False
 
-    def __init__(self, model_path: Optional[str] = None):
-        self.model_path = model_path
+    def __init__(self, model_size: str = "small"):
+        self.model_size = model_size
+        self.model_path: Optional[str] = None
         self._model = None
+
+    def _verify_checksum(self, file_path: str) -> bool:
+        """Verify SHA-256 checksum of downloaded file."""
+        if not VOSK_MODEL_SHA256:
+            logger.warning("No checksum configured for Vosk model (set VOSK_MODEL_SHA256 to enable)")
+            return True
+
+        sha256 = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                sha256.update(chunk)
+        actual = sha256.hexdigest()
+        if actual != VOSK_MODEL_SHA256:
+            logger.error(f"Checksum mismatch: expected {VOSK_MODEL_SHA256}, got {actual}")
+            return False
+        logger.info("Vosk model checksum verified")
+        return True
 
     def _get_model_path(self) -> str:
         """Get or download the Vosk model."""
@@ -46,10 +68,14 @@ class VoskTranscriber(BaseTranscriber):
         import urllib.request
         import zipfile
 
-        url = f"https://alphacephei.com/vosk/models/{VOSK_MODEL_NAME}.zip"
         zip_path = os.path.join(VOSK_MODEL_PATH, f"{VOSK_MODEL_NAME}.zip")
 
-        urllib.request.urlretrieve(url, zip_path)
+        urllib.request.urlretrieve(VOSK_MODEL_URL, zip_path)
+
+        # m2: Verify checksum before extracting
+        if not self._verify_checksum(zip_path):
+            os.remove(zip_path)
+            raise RuntimeError("Vosk model download failed checksum verification")
 
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(VOSK_MODEL_PATH)

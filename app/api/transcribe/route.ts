@@ -6,6 +6,7 @@ import {
   completeTranscription,
   updateTranscriptionStatus,
 } from '@/lib/db/transcriptions';
+import { MAX_UPLOAD_SIZE_BYTES } from '@/lib/constants';
 
 const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024;
+    const maxSize = MAX_UPLOAD_SIZE_BYTES;
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: 'File too large. Maximum size is 500MB.' },
@@ -48,9 +49,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Estimate minutes (rough estimate: 1MB ≈ 1 minute for MP3)
+    // M14: Conservative pre-check (actual charge uses real audio duration from backend)
+    // Use 0.5 min/MB as safe lower bound to avoid over-blocking users
     const fileSizeMB = file.size / (1024 * 1024);
-    const estimatedMinutes = Math.ceil(fileSizeMB);
+    const estimatedMinutes = Math.max(1, Math.ceil(fileSizeMB * 0.5));
     const minutesToCharge = diarization ? estimatedMinutes * 2 : estimatedMinutes;
 
     // Check if user can transcribe
