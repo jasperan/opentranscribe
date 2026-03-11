@@ -7,6 +7,9 @@ set -euo pipefail
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/jasperan/opentranscribe/main/install.sh | bash
+#
+# Override install location:
+#   PROJECT_DIR=/opt/myapp curl -fsSL ... | bash
 # ============================================================
 
 REPO_URL="https://github.com/jasperan/opentranscribe.git"
