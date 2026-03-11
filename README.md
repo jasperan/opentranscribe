@@ -31,6 +31,29 @@ A React app for transcribing MP3 audio files using multiple open-source STT mode
 
 ## Setup
 
+<!-- one-command-install -->
+> **One-command install** — clone, configure, and run in a single step:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/jasperan/opentranscribe/main/install.sh | bash
+> ```
+>
+> <details><summary>Advanced options</summary>
+>
+> Override install location:
+> ```bash
+> PROJECT_DIR=/opt/myapp curl -fsSL https://raw.githubusercontent.com/jasperan/opentranscribe/main/install.sh | bash
+> ```
+>
+> Or install manually:
+> ```bash
+> git clone https://github.com/jasperan/opentranscribe.git
+> cd opentranscribe
+> # See below for setup instructions
+> ```
+> </details>
+
+
 ### 1. Install Frontend Dependencies
 
 ```bash
