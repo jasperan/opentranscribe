@@ -62,6 +62,11 @@ findings.md
 progress.md
 certs/
 .serena/
+.pi/
+.agents/
+.crush/
+.openhands/
+content/
 
 # Claude Code & MCP tools
 CLAUDE.md
