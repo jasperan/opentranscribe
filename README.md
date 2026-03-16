@@ -1,6 +1,6 @@
 # OpenTranscribe
 
-A React app for transcribing MP3 audio files using multiple open-source STT models via a Python backend API.
+A Next.js app for transcribing audio files using multiple open-source STT models via a Python backend API.
 
 ## Features
 
@@ -99,7 +99,7 @@ Select a Task:
 ```bash
 npm run dev
 ```
-The app will open at `http://localhost:5173`
+The app will open at `http://localhost:3000`
 
 ## CLI Usage
 
@@ -156,7 +156,7 @@ The API server runs automatically at `http://127.0.0.1:8000`
 ```bash
 npm run build
 ```
-Deploy the `dist/` folder to any static host.
+Deploy the `.next/` build output or use `npm start` to serve.
 
 ### Backend
 The backend can be deployed to any Python hosting service:
