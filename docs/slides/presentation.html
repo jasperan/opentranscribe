@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenTranscribe - Multi-Model Speech-to-Text</title>
+
+    <!-- Fonts: Bodoni Moda (display) + DM Sans (body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (NOTEBOOK TABS THEME)
+           =========================================== */
+        :root {
+            /* Colors */
+            --bg-outer: #2d2d2d;
+            --bg-page: #f8f6f1;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555555;
+            --text-muted: #888888;
+            --tab-1: #98d4bb; /* Mint */
+            --tab-2: #c7b8ea; /* Lavender */
+            --tab-3: #f4b8c5; /* Pink */
+            --tab-4: #a8d8ea; /* Sky */
+            --tab-5: #ffe6a7; /* Cream */
+            --tab-1-dark: #6bb89a;
+            --tab-2-dark: #a494d0;
+            --tab-3-dark: #e895a6;
+            --tab-4-dark: #7fc4da;
+            --tab-5-dark: #f0d080;
+            --shadow-soft: rgba(0, 0, 0, 0.12);
+            --shadow-medium: rgba(0, 0, 0, 0.2);
+
+            /* Typography - MUST use clamp() */
+            --font-display: 'Bodoni Moda', serif;
+            --font-body: 'DM Sans', sans-serif;
+            --title-size: clamp(2rem, 6vw, 5rem);
+            --subtitle-size: clamp(0.875rem, 2vw, 1.25rem);
+            --h2-size: clamp(1.25rem, 3.5vw, 2.5rem);
+            --h3-size: clamp(1rem, 2.5vw, 1.75rem);
+            --body-size: clamp(0.75rem, 1.5vw, 1.125rem);
+            --small-size: clamp(0.65rem, 1vw, 0.875rem);
+            --code-size: clamp(0.65rem, 1.1vw, 0.9rem);
+
+            /* Spacing - scales with viewport */
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(0.75rem, 2vw, 2rem);
+            --element-gap: clamp(0.25rem, 1vw, 1rem);
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+
+            /* Notebook page dimensions */
+            --page-max-width: min(92vw, 1100px);
+            --page-radius: clamp(4px, 0.5vw, 8px);
+            --binder-width: clamp(30px, 3vw, 50px);
+            --tab-width: clamp(24px, 2.5vw, 40px);
+        }
+
+        /* ===========================================
+           RESET
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           Include this ENTIRE file in every presentation.
+           These styles ensure slides fit exactly in the viewport.
+           =========================================== */
+
+        /* 1. Lock html/body to viewport */
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        /* 2. Each slide = exact viewport height */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile browsers */
+            overflow: hidden; /* CRITICAL: Prevent ANY overflow */
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 3. Content container with flex for centering */
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden; /* Double-protection against overflow */
+            padding: var(--slide-padding);
+        }
+
+        /* 4. ALL typography uses clamp() for responsive scaling */
+        /* (Already defined in :root above) */
+
+        /* 5. Cards/containers use viewport-relative max sizes */
+        .card, .container, .content-box {
+            max-width: min(90vw, 1000px);
+            max-height: min(80vh, 700px);
+        }
+
+        /* 6. Lists auto-scale with viewport */
+        .feature-list, .bullet-list {
+            gap: clamp(0.4rem, 1vh, 1rem);
+        }
+
+        .feature-list li, .bullet-list li {
+            font-size: var(--body-size);
+            line-height: 1.4;
+        }
+
+        /* 7. Grids adapt to available space */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+        }
+
+        /* 8. Images constrained to viewport */
+        img, .image-container {
+            max-width: 100%;
+            max-height: min(50vh, 400px);
+            object-fit: contain;
+        }
+
+        /* ===========================================
+           RESPONSIVE BREAKPOINTS
+           Aggressive scaling for smaller viewports
+           =========================================== */
+
+        /* Short viewports (< 700px height) */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.25rem, 4.5vw, 2.5rem);
+                --h2-size: clamp(1rem, 3vw, 1.75rem);
+            }
+        }
+
+        /* Very short viewports (< 600px height) */
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.1rem, 4vw, 2rem);
+                --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            }
+
+            /* Hide non-essential elements */
+            .nav-dots, .keyboard-hint, .decorative {
+                display: none;
+            }
+        }
+
+        /* Extremely short (landscape phones, < 500px height) */
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+                --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+                --body-size: clamp(0.65rem, 1vw, 0.85rem);
+            }
+        }
+
+        /* Narrow viewports (< 600px width) */
+        @media (max-width: 600px) {
+            :root {
+                --title-size: clamp(1.25rem, 7vw, 2.5rem);
+            }
+
+            /* Stack grids vertically */
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===========================================
+           REDUCED MOTION
+           Respect user preferences
+           =========================================== */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+
+            html {
+                scroll-behavior: auto;
+            }
+        }
+
+        /* ===========================================
+           NOTEBOOK PAGE STYLES
+           Paper container, binder holes, section tabs
+           =========================================== */
+        body {
+            background: var(--bg-outer);
+            font-family: var(--font-body);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .slide {
+            background: var(--bg-outer);
+            align-items: center;
+            justify-content: center;
+            padding: clamp(0.75rem, 2vh, 2rem) clamp(0.5rem, 2vw, 2rem);
+        }
+
+        /* The notebook page container */
+        .notebook-page {
+            position: relative;
+            background: var(--bg-page);
+            width: var(--page-max-width);
+            max-height: min(88vh, 88dvh);
+            border-radius: var(--page-radius);
+            box-shadow:
+                0 2px 8px var(--shadow-soft),
+                0 8px 32px var(--shadow-medium),
+                inset 0 1px 0 rgba(255,255,255,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-left: var(--binder-width);
+        }
+
+        /* Binder holes on left */
+        .notebook-page::before {
+            content: '';
+            position: absolute;
+            left: calc(var(--binder-width) / 2);
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0px,
+                transparent 60px,
+                #ccc 60px,
+                #ccc 62px
+            );
+            z-index: 2;
+        }
+
+        .binder-holes {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--binder-width);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        .binder-hole {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: clamp(12px, 1.2vw, 18px);
+            height: clamp(12px, 1.2vw, 18px);
+            border-radius: 50%;
+            background: var(--bg-outer);
+            border: 2px solid #bbb;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .binder-hole:nth-child(1) { top: 15%; }
+        .binder-hole:nth-child(2) { top: 50%; }
+        .binder-hole:nth-child(3) { top: 85%; }
+
+        /* Section tabs on right edge */
+        .section-tab {
+            position: absolute;
+            right: calc(-1 * var(--tab-width));
+            width: var(--tab-width);
+            height: clamp(50px, 6vh, 80px);
+            border-radius: 0 var(--page-radius) var(--page-radius) 0;
+            z-index: 1;
+            box-shadow: 2px 2px 6px var(--shadow-soft);
+            transition: transform 0.3s var(--ease-out-expo);
+        }
+
+        .section-tab:hover {
+            transform: translateX(4px);
+        }
+
+        .section-tab.tab-mint { background: var(--tab-1); top: 8%; }
+        .section-tab.tab-lavender { background: var(--tab-2); top: 24%; }
+        .section-tab.tab-pink { background: var(--tab-3); top: 40%; }
+        .section-tab.tab-sky { background: var(--tab-4); top: 56%; }
+        .section-tab.tab-cream { background: var(--tab-5); top: 72%; }
+
+        /* Page content area */
+        .page-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--slide-padding);
+            gap: var(--content-gap);
+            overflow: hidden;
+        }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            line-height: 1.1;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 400;
+            font-style: italic;
+            line-height: 1.3;
+            color: var(--text-secondary);
+        }
+
+        p, li {
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .label {
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        /* ===========================================
+           FEATURE CARDS
+           =========================================== */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, clamp(180px, 20vw, 280px)), 1fr));
+            gap: clamp(0.5rem, 1.5vw, 1.25rem);
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: var(--page-radius);
+            padding: clamp(0.75rem, 1.5vw, 1.25rem);
+            transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px var(--shadow-soft);
+        }
+
+        .feature-card .card-icon {
+            font-size: clamp(1.25rem, 2.5vw, 2rem);
+            margin-bottom: clamp(0.25rem, 0.5vw, 0.5rem);
+        }
+
+        .feature-card h4 {
+            font-family: var(--font-display);
+            font-size: clamp(0.8rem, 1.3vw, 1.1rem);
+            font-weight: 700;
+            margin-bottom: clamp(0.15rem, 0.3vw, 0.3rem);
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* ===========================================
+           COLOR ACCENT STRIPS
+           Decorative strips matching section tabs
+           =========================================== */
+        .accent-strip {
+            height: clamp(3px, 0.4vh, 5px);
+            border-radius: 2px;
+            margin-bottom: clamp(0.5rem, 1vw, 1rem);
+        }
+
+        .accent-strip.mint { background: linear-gradient(90deg, var(--tab-1), var(--tab-1-dark)); }
+        .accent-strip.lavender { background: linear-gradient(90deg, var(--tab-2), var(--tab-2-dark)); }
+        .accent-strip.pink { background: linear-gradient(90deg, var(--tab-3), var(--tab-3-dark)); }
+        .accent-strip.sky { background: linear-gradient(90deg, var(--tab-4), var(--tab-4-dark)); }
+        .accent-strip.cream { background: linear-gradient(90deg, var(--tab-5), var(--tab-5-dark)); }
+
+        /* ===========================================
+           MODEL TABLE
+           =========================================== */
+        .model-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: var(--small-size);
+        }
+
+        .model-table th {
+            font-family: var(--font-body);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+            color: var(--text-muted);
+            padding: clamp(0.3rem, 0.5vw, 0.5rem) clamp(0.5rem, 1vw, 1rem);
+            text-align: left;
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+        }
+
+        .model-table td {
+            padding: clamp(0.3rem, 0.5vw, 0.5rem) clamp(0.5rem, 1vw, 1rem);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-size: var(--small-size);
+        }
+
+        .model-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .model-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* ===========================================
+           CODE BLOCKS
+           =========================================== */
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: var(--page-radius);
+            padding: clamp(0.5rem, 1.2vw, 1rem) clamp(0.75rem, 1.5vw, 1.25rem);
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: var(--code-size);
+            line-height: 1.5;
+            overflow: hidden;
+            white-space: pre;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .code-block .keyword { color: #c586c0; }
+        .code-block .string { color: #ce9178; }
+        .code-block .comment { color: #6a9955; }
+        .code-block .function { color: #dcdcaa; }
+        .code-block .type { color: #4ec9b0; }
+        .code-block .number { color: #b5cea8; }
+
+        /* ===========================================
+           FLOW / ARCHITECTURE DIAGRAMS
+           =========================================== */
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(0.5rem, 1.5vw, 1.5rem);
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            background: rgba(255,255,255,0.7);
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: var(--page-radius);
+            padding: clamp(0.5rem, 1vw, 1rem) clamp(0.75rem, 1.5vw, 1.5rem);
+            text-align: center;
+            min-width: clamp(80px, 10vw, 140px);
+            transition: transform 0.3s var(--ease-out-expo);
+        }
+
+        .flow-box:hover {
+            transform: scale(1.03);
+        }
+
+        .flow-box.accent-mint { border-left: 3px solid var(--tab-1); }
+        .flow-box.accent-lavender { border-left: 3px solid var(--tab-2); }
+        .flow-box.accent-pink { border-left: 3px solid var(--tab-3); }
+        .flow-box.accent-sky { border-left: 3px solid var(--tab-4); }
+        .flow-box.accent-cream { border-left: 3px solid var(--tab-5); }
+
+        .flow-box .box-label {
+            font-family: var(--font-display);
+            font-size: clamp(0.7rem, 1.1vw, 0.95rem);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .flow-box .box-detail {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        .flow-arrow {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        /* ===========================================
+           BULLET LISTS
+           =========================================== */
+        .note-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.3rem, 0.8vh, 0.75rem);
+        }
+
+        .note-list li {
+            padding-left: clamp(1rem, 2vw, 1.5rem);
+            position: relative;
+        }
+
+        .note-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: clamp(0.4rem, 0.8vw, 0.6rem);
+            width: clamp(5px, 0.5vw, 8px);
+            height: clamp(5px, 0.5vw, 8px);
+            border-radius: 50%;
+            background: var(--tab-1);
+        }
+
+        .note-list.lavender li::before { background: var(--tab-2); }
+        .note-list.pink li::before { background: var(--tab-3); }
+        .note-list.sky li::before { background: var(--tab-4); }
+        .note-list.cream li::before { background: var(--tab-5); }
+
+        /* ===========================================
+           TAG PILLS
+           =========================================== */
+        .tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(0.3rem, 0.6vw, 0.5rem);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: clamp(0.15rem, 0.3vw, 0.25rem) clamp(0.4rem, 0.8vw, 0.75rem);
+            border-radius: 100px;
+            font-size: var(--small-size);
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .tag.mint { background: var(--tab-1); }
+        .tag.lavender { background: var(--tab-2); }
+        .tag.pink { background: var(--tab-3); }
+        .tag.sky { background: var(--tab-4); }
+        .tag.cream { background: var(--tab-5); }
+
+        /* ===========================================
+           TWO-COLUMN LAYOUT
+           =========================================== */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(1rem, 2vw, 2rem);
+            align-items: start;
+        }
+
+        @media (max-width: 700px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===========================================
+           STAT BLOCKS
+           =========================================== */
+        .stat-row {
+            display: flex;
+            gap: clamp(1rem, 3vw, 3rem);
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--tab-1), var(--tab-2), var(--tab-3), var(--tab-4), var(--tab-5));
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        /* ===========================================
+           NAVIGATION DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: clamp(8px, 1.5vw, 20px);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(4px, 0.5vh, 8px);
+            z-index: 999;
+        }
+
+        .nav-dot {
+            width: clamp(6px, 0.6vw, 10px);
+            height: clamp(6px, 0.6vw, 10px);
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s var(--ease-out-expo);
+            padding: 0;
+        }
+
+        .nav-dot.active {
+            background: var(--tab-1);
+            transform: scale(1.4);
+        }
+
+        .nav-dot:hover {
+            background: rgba(255,255,255,0.6);
+        }
+
+        /* ===========================================
+           SLIDE COUNTER
+           =========================================== */
+        .slide-counter {
+            position: fixed;
+            top: clamp(8px, 1.5vh, 16px);
+            right: clamp(12px, 2vw, 24px);
+            font-family: var(--font-body);
+            font-size: var(--small-size);
+            color: rgba(255,255,255,0.5);
+            z-index: 999;
+        }
+
+        /* ===========================================
+           ANIMATIONS
+           Trigger via .visible class (added by JS on scroll)
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal-left {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal-scale {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Stagger children for sequential reveal */
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        .reveal-left:nth-child(1) { transition-delay: 0.1s; }
+        .reveal-left:nth-child(2) { transition-delay: 0.2s; }
+        .reveal-left:nth-child(3) { transition-delay: 0.3s; }
+        .reveal-left:nth-child(4) { transition-delay: 0.4s; }
+
+        /* ===========================================
+           TITLE SLIDE SPECIAL STYLES
+           =========================================== */
+        .title-page .page-content {
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-page h1 {
+            font-size: clamp(2.5rem, 7vw, 5.5rem);
+        }
+
+        .waveform-decoration {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            justify-content: center;
+            height: clamp(24px, 4vh, 48px);
+            margin: clamp(0.5rem, 1vh, 1rem) 0;
+        }
+
+        .wave-bar {
+            width: clamp(3px, 0.4vw, 5px);
+            border-radius: 2px;
+            animation: wave 1.2s ease-in-out infinite;
+        }
+
+        .wave-bar:nth-child(1) { height: 40%; background: var(--tab-1); animation-delay: 0s; }
+        .wave-bar:nth-child(2) { height: 70%; background: var(--tab-2); animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { height: 100%; background: var(--tab-3); animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { height: 55%; background: var(--tab-4); animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { height: 85%; background: var(--tab-5); animation-delay: 0.4s; }
+        .wave-bar:nth-child(6) { height: 45%; background: var(--tab-1); animation-delay: 0.5s; }
+        .wave-bar:nth-child(7) { height: 90%; background: var(--tab-2); animation-delay: 0.6s; }
+        .wave-bar:nth-child(8) { height: 60%; background: var(--tab-3); animation-delay: 0.7s; }
+        .wave-bar:nth-child(9) { height: 35%; background: var(--tab-4); animation-delay: 0.8s; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.4); }
+        }
+
+        /* ===========================================
+           CLOSING SLIDE
+           =========================================== */
+        .closing-page .page-content {
+            align-items: center;
+            text-align: center;
+        }
+
+        .link-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.3rem, 0.6vh, 0.5rem);
+            align-items: center;
+        }
+
+        .link-list li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+        }
+
+        .link-list a {
+            color: var(--tab-2-dark);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .link-list a:hover {
+            border-bottom-color: var(--tab-2-dark);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Navigation dots -->
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+    <!-- Slide counter -->
+    <div class="slide-counter" id="slideCounter">1 / 22</div>
+
+    <!-- ===================================================
+         SLIDE 1: TITLE
+         =================================================== -->
+    <section class="slide" data-section="intro">
+        <div class="notebook-page title-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-mint"></div>
+            <div class="page-content">
+                <span class="label reveal">Open Source Speech-to-Text</span>
+                <h1 class="reveal">OpenTranscribe</h1>
+                <div class="waveform-decoration reveal">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+                <h3 class="reveal">5 STT models. Real-time streaming. Zero API keys.</h3>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 2: THE PROBLEM
+         =================================================== -->
+    <section class="slide" data-section="intro">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-mint"></div>
+            <div class="page-content">
+                <div class="accent-strip mint"></div>
+                <h2 class="reveal">Why This Exists</h2>
+                <ul class="note-list reveal">
+                    <li>Cloud transcription services charge per minute and lock you into their API</li>
+                    <li>No single open-source model wins every use case (speed, accuracy, offline)</li>
+                    <li>Comparing models requires painful manual setup of each engine separately</li>
+                    <li>Real-time streaming and file-based transcription rarely live in the same tool</li>
+                </ul>
+                <p class="reveal" style="margin-top: var(--element-gap); font-style: italic; color: var(--text-muted);">
+                    OpenTranscribe wraps 5 free models behind one interface, runs locally, and lets you compare them head-to-head.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 3: KEY FEATURES (1/2)
+         =================================================== -->
+    <section class="slide" data-section="features">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-lavender"></div>
+            <div class="page-content">
+                <div class="accent-strip lavender"></div>
+                <h2 class="reveal">Core Features</h2>
+                <div class="card-grid reveal">
+                    <div class="feature-card">
+                        <div class="card-icon">🎙</div>
+                        <h4>5 STT Models</h4>
+                        <p>Faster Whisper, OpenAI Whisper, Vosk, whisper.cpp, Wav2Vec2</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">⚡</div>
+                        <h4>Model Comparison</h4>
+                        <p>Run all models on the same audio and diff the outputs word-by-word</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">📡</div>
+                        <h4>Real-Time Streaming</h4>
+                        <p>WebSocket streaming with Vosk and Faster Whisper + Silero VAD</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">🔒</div>
+                        <h4>Privacy First</h4>
+                        <p>Everything runs locally. No data leaves your machine.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">🗣</div>
+                        <h4>Speaker Diarization</h4>
+                        <p>Who said what, powered by pyannote.audio</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">🌍</div>
+                        <h4>Multi-Language</h4>
+                        <p>English, Spanish, auto-detect, and more</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 4: KEY FEATURES (2/2)
+         =================================================== -->
+    <section class="slide" data-section="features">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-lavender"></div>
+            <div class="page-content">
+                <div class="accent-strip lavender"></div>
+                <h2 class="reveal">More Features</h2>
+                <div class="card-grid reveal">
+                    <div class="feature-card">
+                        <div class="card-icon">📎</div>
+                        <h4>Drag-and-Drop Upload</h4>
+                        <p>Drop MP3, WAV, or video files directly into the browser</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">🎬</div>
+                        <h4>Video Support</h4>
+                        <p>Automatically extracts audio from video files before transcription</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">📄</div>
+                        <h4>Multi-Format Export</h4>
+                        <p>TXT, SRT, VTT, DOCX, JSON with timestamps</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">⌨</div>
+                        <h4>CLI + Web UI</h4>
+                        <p>Interactive terminal CLI or full Next.js web interface</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">⏱</div>
+                        <h4>Timestamps</h4>
+                        <p>Segment-level timing for every transcription</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="card-icon">💳</div>
+                        <h4>SaaS-Ready</h4>
+                        <p>Built-in auth, usage tracking, Stripe billing, rate limiting</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 5: ARCHITECTURE OVERVIEW
+         =================================================== -->
+    <section class="slide" data-section="architecture">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-pink"></div>
+            <div class="page-content">
+                <div class="accent-strip pink"></div>
+                <h2 class="reveal">Two-Server Architecture</h2>
+                <p class="reveal" style="margin-bottom: var(--element-gap);">Next.js handles auth and the frontend. FastAPI handles all the heavy STT inference.</p>
+                <div class="flow-row reveal">
+                    <div class="flow-box accent-lavender">
+                        <div class="box-label">Browser</div>
+                        <div class="box-detail">React 19 UI</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-mint">
+                        <div class="box-label">Next.js</div>
+                        <div class="box-detail">Port 3000</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-pink">
+                        <div class="box-label">FastAPI</div>
+                        <div class="box-detail">Port 8000</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-sky">
+                        <div class="box-label">STT Models</div>
+                        <div class="box-detail">5 engines</div>
+                    </div>
+                </div>
+                <div class="flow-row reveal" style="margin-top: var(--element-gap);">
+                    <div class="flow-box accent-cream">
+                        <div class="box-label">HTTPS Proxy</div>
+                        <div class="box-detail">Port 3443 (TLS)</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-lavender">
+                        <div class="box-label">SQLite</div>
+                        <div class="box-detail">WAL mode</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-mint">
+                        <div class="box-label">WebSocket</div>
+                        <div class="box-detail">Streaming</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 6: HOW THE REQUEST FLOWS
+         =================================================== -->
+    <section class="slide" data-section="architecture">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-pink"></div>
+            <div class="page-content">
+                <div class="accent-strip pink"></div>
+                <h2 class="reveal">Request Flow: File Transcription</h2>
+                <ol class="note-list lavender reveal" style="counter-reset: step;">
+                    <li><strong>Upload:</strong> User drops audio/video file in the browser UI</li>
+                    <li><strong>Authenticate:</strong> Next.js API route validates session cookie</li>
+                    <li><strong>Proxy:</strong> Next.js forwards the file to FastAPI on localhost:8000</li>
+                    <li><strong>Detect:</strong> FastAPI checks if it's video; extracts audio if needed</li>
+                    <li><strong>Transcribe:</strong> Selected STT model processes the audio</li>
+                    <li><strong>Respond:</strong> Text, segments, timestamps, language returned as JSON</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 7: HOW STREAMING WORKS
+         =================================================== -->
+    <section class="slide" data-section="architecture">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-pink"></div>
+            <div class="page-content">
+                <div class="accent-strip pink"></div>
+                <h2 class="reveal">WebSocket Streaming Protocol</h2>
+                <div class="two-col reveal">
+                    <div>
+                        <h3 style="font-size: var(--body-size); font-style: normal; color: var(--text-primary); margin-bottom: 0.5rem;">Client sends</h3>
+                        <ul class="note-list" style="gap: 0.3rem;">
+                            <li><code>{type: "start"}</code></li>
+                            <li><code>{type: "audio", data: base64}</code></li>
+                            <li><code>{type: "stop"}</code></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="font-size: var(--body-size); font-style: normal; color: var(--text-primary); margin-bottom: 0.5rem;">Server responds</h3>
+                        <ul class="note-list lavender" style="gap: 0.3rem;">
+                            <li><code>{type: "ready"}</code></li>
+                            <li><code>{type: "partial"}</code></li>
+                            <li><code>{type: "final"}</code></li>
+                            <li><code>{type: "vad"}</code></li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="reveal" style="margin-top: var(--content-gap); font-style: italic; color: var(--text-muted);">
+                    Two endpoints: <code>/ws/transcribe/stream</code> (Vosk, lightweight) and <code>/ws/live/stream</code> (Faster Whisper + Silero VAD, higher accuracy).
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 8: MODEL REGISTRY
+         =================================================== -->
+    <section class="slide" data-section="models">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-sky"></div>
+            <div class="page-content">
+                <div class="accent-strip sky"></div>
+                <h2 class="reveal">The 5 STT Models</h2>
+                <table class="model-table reveal">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Speed</th>
+                            <th>Accuracy</th>
+                            <th>GPU</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="model-name">Faster Whisper</td>
+                            <td>Fast</td>
+                            <td>&#9733;&#9733;&#9733;&#9733;&#9733;</td>
+                            <td>Optional</td>
+                            <td>Default, best balance</td>
+                        </tr>
+                        <tr>
+                            <td class="model-name">OpenAI Whisper</td>
+                            <td>Medium</td>
+                            <td>&#9733;&#9733;&#9733;&#9733;&#9733;</td>
+                            <td>Optional</td>
+                            <td>Reference model</td>
+                        </tr>
+                        <tr>
+                            <td class="model-name">Vosk</td>
+                            <td>Fastest</td>
+                            <td>&#9733;&#9733;&#9733;</td>
+                            <td>No</td>
+                            <td>Real-time, embedded</td>
+                        </tr>
+                        <tr>
+                            <td class="model-name">whisper.cpp</td>
+                            <td>Slow</td>
+                            <td>&#9733;&#9733;&#9733;&#9733;&#9733;</td>
+                            <td>No</td>
+                            <td>CPU-only systems</td>
+                        </tr>
+                        <tr>
+                            <td class="model-name">Wav2Vec2</td>
+                            <td>Medium</td>
+                            <td>&#9733;&#9733;&#9733;</td>
+                            <td>Optional</td>
+                            <td>Research, fine-tuning</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 9: MODEL DEEP DIVE - FASTER WHISPER
+         =================================================== -->
+    <section class="slide" data-section="models">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-sky"></div>
+            <div class="page-content">
+                <div class="accent-strip sky"></div>
+                <h2 class="reveal">Faster Whisper (Default)</h2>
+                <div class="two-col">
+                    <div class="reveal-left">
+                        <ul class="note-list sky" style="gap: 0.4rem;">
+                            <li>CTranslate2 reimplementation of OpenAI Whisper</li>
+                            <li>4x faster inference with equivalent accuracy</li>
+                            <li>GPU acceleration via CUDA when available</li>
+                            <li>Used for both file transcription and live streaming</li>
+                            <li>Silero VAD integration for voice activity detection</li>
+                        </ul>
+                    </div>
+                    <div class="reveal">
+                        <div class="code-block"><span class="comment"># Factory pattern with decorator</span>
+<span class="keyword">@register_model</span>(<span class="string">"faster-whisper"</span>)
+<span class="keyword">class</span> <span class="type">FasterWhisperTranscriber</span>:
+    <span class="keyword">def</span> <span class="function">transcribe</span>(self, path, lang):
+        model = WhisperModel(<span class="string">"base"</span>)
+        segments, info = model.transcribe(
+            path, language=lang
+        )
+        <span class="keyword">return</span> TranscriptionResult(...)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 10: MODEL DEEP DIVE - VOSK
+         =================================================== -->
+    <section class="slide" data-section="models">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-sky"></div>
+            <div class="page-content">
+                <div class="accent-strip sky"></div>
+                <h2 class="reveal">Vosk: Lightweight Streaming</h2>
+                <div class="two-col">
+                    <div class="reveal-left">
+                        <ul class="note-list" style="gap: 0.4rem;">
+                            <li>Kaldi-based, only ~50MB model download</li>
+                            <li>No GPU required, runs on any hardware</li>
+                            <li>Best for real-time embedded use cases</li>
+                            <li>Supports push-to-talk, toggle, and VAD recording modes</li>
+                            <li>Multiple output modes: display, auto-save, clipboard</li>
+                        </ul>
+                    </div>
+                    <div class="reveal">
+                        <div class="stat-row" style="justify-content: center; margin-top: var(--content-gap);">
+                            <div class="stat">
+                                <div class="stat-value">~50</div>
+                                <div class="stat-label">MB model size</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">16</div>
+                                <div class="stat-label">kHz sample rate</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">0</div>
+                                <div class="stat-label">GPU required</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 11: MODEL COMPARISON FEATURE
+         =================================================== -->
+    <section class="slide" data-section="models">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-sky"></div>
+            <div class="page-content">
+                <div class="accent-strip sky"></div>
+                <h2 class="reveal">Model Comparison Engine</h2>
+                <p class="reveal">Models run in parallel via a thread pool. A diff engine highlights every word-level difference.</p>
+                <div class="code-block reveal" style="margin-top: var(--element-gap);"><span class="comment"># Parallel execution with ThreadPoolExecutor</span>
+futures = [executor.submit(_run_model, mid)
+           <span class="keyword">for</span> mid <span class="keyword">in</span> model_ids]
+
+<span class="comment"># DiffEngine compares against baseline</span>
+baseline = results[<span class="number">0</span>]
+diff_engine = DiffEngine(baseline)
+comparisons = [diff_engine.compare(r)
+               <span class="keyword">for</span> r <span class="keyword">in</span> results[<span class="number">1</span>:]]</div>
+                <div class="tag-row reveal" style="margin-top: var(--content-gap);">
+                    <span class="tag mint">Word-level diff</span>
+                    <span class="tag lavender">Match percentage</span>
+                    <span class="tag pink">Timing comparison</span>
+                    <span class="tag sky">Parallel execution</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 12: SPEAKER DIARIZATION
+         =================================================== -->
+    <section class="slide" data-section="models">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-sky"></div>
+            <div class="page-content">
+                <div class="accent-strip sky"></div>
+                <h2 class="reveal">Speaker Diarization</h2>
+                <div class="two-col">
+                    <div class="reveal-left">
+                        <ul class="note-list pink" style="gap: 0.4rem;">
+                            <li>Powered by pyannote.audio 3.1</li>
+                            <li>Combines STT output with speaker segmentation</li>
+                            <li>Supports configurable speaker count (1-20)</li>
+                            <li>Each segment tagged with speaker identity</li>
+                            <li>Graceful fallback if pyannote not installed</li>
+                        </ul>
+                    </div>
+                    <div class="reveal">
+                        <div class="code-block"><span class="comment"># Midpoint matching algorithm</span>
+<span class="keyword">for</span> segment <span class="keyword">in</span> transcription.segments:
+    seg_mid = (segment.start + segment.end) / <span class="number">2</span>
+    <span class="keyword">for</span> turn, _, label <span class="keyword">in</span> diarization:
+        <span class="keyword">if</span> turn.start <= seg_mid <= turn.end:
+            speaker = label
+            <span class="keyword">break</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 13: TECH STACK - FRONTEND
+         =================================================== -->
+    <section class="slide" data-section="tech">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-cream"></div>
+            <div class="page-content">
+                <div class="accent-strip cream"></div>
+                <h2 class="reveal">Frontend Stack</h2>
+                <div class="card-grid reveal">
+                    <div class="feature-card">
+                        <h4>Next.js 15</h4>
+                        <p>App router, API routes, server-side rendering</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>React 19</h4>
+                        <p>Latest concurrent features, server components</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>TypeScript 5.8</h4>
+                        <p>Full type safety across the entire frontend</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Tailwind CSS</h4>
+                        <p>Utility-first styling with shadcn/ui components</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Framer Motion</h4>
+                        <p>Smooth animations, waveform effects, transitions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Lucide React</h4>
+                        <p>Consistent iconography throughout the UI</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 14: TECH STACK - BACKEND
+         =================================================== -->
+    <section class="slide" data-section="tech">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-cream"></div>
+            <div class="page-content">
+                <div class="accent-strip cream"></div>
+                <h2 class="reveal">Backend Stack</h2>
+                <div class="card-grid reveal">
+                    <div class="feature-card">
+                        <h4>FastAPI</h4>
+                        <p>Async Python, auto-docs, WebSocket support</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>PyTorch</h4>
+                        <p>GPU inference for Whisper and Wav2Vec2 models</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>SQLite (WAL)</h4>
+                        <p>Users, sessions, transcriptions, usage tracking</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Resend</h4>
+                        <p>Magic link email authentication flow</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Stripe</h4>
+                        <p>Subscription billing with tier management</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Playwright</h4>
+                        <p>E2E tests across 5 browser configurations</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 15: TECH STACK - DEPENDENCIES DETAIL
+         =================================================== -->
+    <section class="slide" data-section="tech">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-cream"></div>
+            <div class="page-content">
+                <div class="accent-strip cream"></div>
+                <h2 class="reveal">Key Dependencies</h2>
+                <div class="two-col reveal">
+                    <div>
+                        <h3 style="font-size: var(--body-size); font-style: normal; color: var(--text-primary); margin-bottom: 0.5rem;">Python (backend)</h3>
+                        <div class="tag-row" style="margin-bottom: 0.5rem;">
+                            <span class="tag mint">fastapi</span>
+                            <span class="tag lavender">faster-whisper</span>
+                            <span class="tag pink">openai-whisper</span>
+                        </div>
+                        <div class="tag-row" style="margin-bottom: 0.5rem;">
+                            <span class="tag sky">vosk</span>
+                            <span class="tag cream">wav2vec2</span>
+                            <span class="tag mint">torch</span>
+                        </div>
+                        <div class="tag-row">
+                            <span class="tag lavender">pyannote.audio</span>
+                            <span class="tag pink">uvicorn</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: var(--body-size); font-style: normal; color: var(--text-primary); margin-bottom: 0.5rem;">Node.js (frontend)</h3>
+                        <div class="tag-row" style="margin-bottom: 0.5rem;">
+                            <span class="tag sky">next@15</span>
+                            <span class="tag cream">react@19</span>
+                            <span class="tag mint">typescript@5.8</span>
+                        </div>
+                        <div class="tag-row" style="margin-bottom: 0.5rem;">
+                            <span class="tag lavender">tailwindcss</span>
+                            <span class="tag pink">framer-motion</span>
+                            <span class="tag sky">better-sqlite3</span>
+                        </div>
+                        <div class="tag-row">
+                            <span class="tag cream">resend</span>
+                            <span class="tag mint">stripe</span>
+                            <span class="tag lavender">@playwright/test</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 16: GETTING STARTED
+         =================================================== -->
+    <section class="slide" data-section="usage">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-mint"></div>
+            <div class="page-content">
+                <div class="accent-strip mint"></div>
+                <h2 class="reveal">Quick Start</h2>
+                <div class="code-block reveal"><span class="comment"># One-command install</span>
+curl -fsSL https://raw.githubusercontent.com/jasperan/opentranscribe/main/install.sh | bash
+
+<span class="comment"># Or manual setup</span>
+git clone https://github.com/jasperan/opentranscribe.git
+cd opentranscribe
+npm install
+pip install -r requirements.txt
+
+<span class="comment"># Launch everything</span>
+./start.sh</div>
+                <p class="reveal" style="margin-top: var(--element-gap);">
+                    Requires Node.js 18+, Python 3.10+. GPU optional (NVIDIA CUDA).
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 17: CLI USAGE
+         =================================================== -->
+    <section class="slide" data-section="usage">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-mint"></div>
+            <div class="page-content">
+                <div class="accent-strip mint"></div>
+                <h2 class="reveal">Interactive CLI</h2>
+                <p class="reveal">The CLI auto-starts the API server. No separate terminal needed.</p>
+                <div class="code-block reveal" style="margin-top: var(--element-gap);">cd backend && python cli.py
+
+  ╔══════════════════════════════════════╗
+  ║        OPENTRANSCRIBE CLI            ║
+  ║   Multi-Model Audio Transcription    ║
+  ║   API Server: ● Running              ║
+  ╚══════════════════════════════════════╝
+
+  [1] Transcribe Audio File
+  [2] Compare All Models
+  [3] List Available Models
+  [4] Manage API Server
+  [0] Exit</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 18: API ENDPOINTS
+         =================================================== -->
+    <section class="slide" data-section="usage">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-mint"></div>
+            <div class="page-content">
+                <div class="accent-strip mint"></div>
+                <h2 class="reveal">REST API Endpoints</h2>
+                <table class="model-table reveal">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag mint" style="padding: 0.1rem 0.4rem;">GET</span></td>
+                            <td><code>/health</code></td>
+                            <td>Health check</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag mint" style="padding: 0.1rem 0.4rem;">GET</span></td>
+                            <td><code>/models</code></td>
+                            <td>List available STT models</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag lavender" style="padding: 0.1rem 0.4rem;">POST</span></td>
+                            <td><code>/transcribe</code></td>
+                            <td>Transcribe audio/video file</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag lavender" style="padding: 0.1rem 0.4rem;">POST</span></td>
+                            <td><code>/diarize</code></td>
+                            <td>Transcribe with speaker labels</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag lavender" style="padding: 0.1rem 0.4rem;">POST</span></td>
+                            <td><code>/compare</code></td>
+                            <td>Run and diff multiple models</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag pink" style="padding: 0.1rem 0.4rem;">WS</span></td>
+                            <td><code>/ws/transcribe/stream</code></td>
+                            <td>Vosk real-time streaming</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag pink" style="padding: 0.1rem 0.4rem;">WS</span></td>
+                            <td><code>/ws/live/stream</code></td>
+                            <td>Whisper + VAD streaming</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 19: AUTHENTICATION
+         =================================================== -->
+    <section class="slide" data-section="config">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-lavender"></div>
+            <div class="page-content">
+                <div class="accent-strip lavender"></div>
+                <h2 class="reveal">Magic Link Authentication</h2>
+                <div class="flow-row reveal">
+                    <div class="flow-box accent-mint">
+                        <div class="box-label">User</div>
+                        <div class="box-detail">Enters email</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-lavender">
+                        <div class="box-label">Resend</div>
+                        <div class="box-detail">Sends magic link</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-pink">
+                        <div class="box-label">Click</div>
+                        <div class="box-detail">Verify token</div>
+                    </div>
+                    <div class="flow-arrow">&#8594;</div>
+                    <div class="flow-box accent-sky">
+                        <div class="box-label">Session</div>
+                        <div class="box-detail">httpOnly cookie</div>
+                    </div>
+                </div>
+                <ul class="note-list cream reveal" style="margin-top: var(--content-gap);">
+                    <li>No passwords to store or remember</li>
+                    <li>Dev mode auto-authenticates as <code>dev@localhost</code> for fast iteration</li>
+                    <li>Sessions stored in SQLite with secure cookies</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 20: CONFIGURATION & DEPLOYMENT
+         =================================================== -->
+    <section class="slide" data-section="config">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-lavender"></div>
+            <div class="page-content">
+                <div class="accent-strip lavender"></div>
+                <h2 class="reveal">Configuration</h2>
+                <div class="two-col">
+                    <div class="reveal-left">
+                        <h3 style="font-size: var(--body-size); font-style: normal; color: var(--text-primary); margin-bottom: 0.5rem;">config.yaml</h3>
+                        <ul class="note-list" style="gap: 0.3rem;">
+                            <li>Tier definitions (free/creator/pro/unlimited)</li>
+                            <li>Minute limits and rate limiting per tier</li>
+                            <li>Stripe keys and billing config</li>
+                            <li>Environment-specific overrides</li>
+                        </ul>
+                    </div>
+                    <div class="reveal">
+                        <h3 style="font-size: var(--body-size); font-style: normal; color: var(--text-primary); margin-bottom: 0.5rem;">Environment Variables</h3>
+                        <div class="code-block"><span class="type">VERBATIM_URL</span>=https://...
+<span class="type">VERBATIM_ENV</span>=production
+<span class="type">STRIPE_SECRET_KEY</span>=sk_live_...
+<span class="type">RESEND_API_KEY</span>=re_...
+<span class="type">HF_TOKEN</span>=hf_... <span class="comment"># diarization</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 21: DEPLOYMENT OPTIONS
+         =================================================== -->
+    <section class="slide" data-section="config">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-lavender"></div>
+            <div class="page-content">
+                <div class="accent-strip lavender"></div>
+                <h2 class="reveal">Deployment</h2>
+                <div class="card-grid reveal">
+                    <div class="feature-card">
+                        <h4>Local (start.sh)</h4>
+                        <p>Starts backend + frontend + HTTPS proxy in one command</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Heroku</h4>
+                        <p>Add Procfile: <code>uvicorn backend.main:app</code></p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Railway / Render</h4>
+                        <p>Point to <code>python backend/main.py</code></p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Docker</h4>
+                        <p>Containerized deployment with GPU passthrough</p>
+                    </div>
+                </div>
+                <p class="reveal" style="margin-top: var(--element-gap); font-style: italic; color: var(--text-muted);">
+                    The HTTPS proxy (port 3443) terminates TLS for secure microphone access in browsers. Routes <code>/ws/*</code> to FastAPI, everything else to Next.js.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 22: UI DESIGN SYSTEM
+         =================================================== -->
+    <section class="slide" data-section="design">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-pink"></div>
+            <div class="page-content">
+                <div class="accent-strip pink"></div>
+                <h2 class="reveal">Sonic Precision Design System</h2>
+                <div class="card-grid reveal">
+                    <div class="feature-card">
+                        <h4>Color Palette</h4>
+                        <p>Warm gold (#F59E0B) on deep ink, ivory light mode</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Typography</h4>
+                        <p>Inter font family, tuned for readability</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Glass Effects</h4>
+                        <p>Backdrop blur panels for depth and hierarchy</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Waveform Animations</h4>
+                        <p>Subtle audio visualizations in the UI</p>
+                    </div>
+                </div>
+                <h3 class="reveal" style="margin-top: var(--element-gap);">Key Components</h3>
+                <div class="tag-row reveal">
+                    <span class="tag mint">Upload Zone</span>
+                    <span class="tag lavender">Audio Player</span>
+                    <span class="tag pink">Model Selector</span>
+                    <span class="tag sky">Transcript Editor</span>
+                    <span class="tag cream">Diff Viewer</span>
+                    <span class="tag mint">Export Menu</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 23: E2E TESTING
+         =================================================== -->
+    <section class="slide" data-section="testing">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-cream"></div>
+            <div class="page-content">
+                <div class="accent-strip cream"></div>
+                <h2 class="reveal">E2E Testing with Playwright</h2>
+                <div class="two-col">
+                    <div class="reveal-left">
+                        <ul class="note-list sky" style="gap: 0.4rem;">
+                            <li>5 browser projects: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari</li>
+                            <li>Dev-only helpers for magic link generation and DB reset</li>
+                            <li>Traces and video capture on first retry</li>
+                            <li>Screenshots on failure for visual debugging</li>
+                        </ul>
+                    </div>
+                    <div class="reveal">
+                        <div class="code-block"><span class="comment"># Run all browsers</span>
+npx playwright test
+
+<span class="comment"># Single file</span>
+npx playwright test e2e/login.spec.ts
+
+<span class="comment"># Interactive UI</span>
+npm run test:e2e:ui
+
+<span class="comment"># View report</span>
+npx playwright show-report</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 24: PROJECT STRUCTURE
+         =================================================== -->
+    <section class="slide" data-section="structure">
+        <div class="notebook-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-sky"></div>
+            <div class="page-content">
+                <div class="accent-strip sky"></div>
+                <h2 class="reveal">Project Structure</h2>
+                <div class="two-col reveal">
+                    <div>
+                        <div class="code-block"><span class="comment"># Frontend</span>
+app/
+  api/           <span class="comment"># Next.js routes</span>
+  app/           <span class="comment"># Protected pages</span>
+  login/         <span class="comment"># Auth pages</span>
+components/      <span class="comment"># React components</span>
+lib/
+  auth.ts        <span class="comment"># Magic link flow</span>
+  config.ts      <span class="comment"># YAML + env loader</span>
+  db/            <span class="comment"># SQLite schema</span>
+e2e/             <span class="comment"># Playwright tests</span></div>
+                    </div>
+                    <div>
+                        <div class="code-block"><span class="comment"># Backend</span>
+backend/
+  main.py        <span class="comment"># FastAPI app</span>
+  cli.py         <span class="comment"># Interactive CLI</span>
+  diff.py        <span class="comment"># Comparison engine</span>
+  models/
+    base.py      <span class="comment"># BaseTranscriber</span>
+    faster_whisper_model.py
+    openai_whisper_model.py
+    vosk_model.py
+    whisper_cpp_model.py
+    wav2vec2_model.py
+  streaming/     <span class="comment"># WebSocket</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================================================
+         SLIDE 25: CLOSING
+         =================================================== -->
+    <section class="slide" data-section="closing">
+        <div class="notebook-page closing-page">
+            <div class="binder-holes">
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+                <div class="binder-hole"></div>
+            </div>
+            <div class="section-tab tab-lavender"></div>
+            <div class="page-content">
+                <h2 class="reveal">OpenTranscribe</h2>
+                <div class="waveform-decoration reveal">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+                <div class="stat-row reveal" style="justify-content: center; margin: var(--content-gap) 0;">
+                    <div class="stat">
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">STT Models</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">2</div>
+                        <div class="stat-label">Streaming Engines</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">API Keys Required</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">MIT</div>
+                        <div class="stat-label">License</div>
+                    </div>
+                </div>
+                <ul class="link-list reveal">
+                    <li><a href="https://github.com/jasperan/opentranscribe">github.com/jasperan/opentranscribe</a></li>
+                    <li>MIT License &middot; jasperan</li>
+                </ul>
+                <div class="tag-row reveal" style="justify-content: center; margin-top: var(--element-gap);">
+                    <span class="tag mint">Next.js 15</span>
+                    <span class="tag lavender">FastAPI</span>
+                    <span class="tag pink">Whisper</span>
+                    <span class="tag sky">Vosk</span>
+                    <span class="tag cream">PyTorch</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===========================================
+         SLIDE PRESENTATION CONTROLLER
+         =========================================== -->
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.totalSlides = this.slides.length;
+                this.isScrolling = false;
+
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupProgressBar();
+                this.setupNavDots();
+                this.updateSlideCounter();
+            }
+
+            /* --- Intersection Observer: add .visible class --- */
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            const index = Array.from(this.slides).indexOf(entry.target);
+                            if (index !== -1) {
+                                this.currentSlide = index;
+                                this.updateProgressBar();
+                                this.updateNavDots();
+                                this.updateSlideCounter();
+                            }
+                        }
+                    });
+                }, {
+                    threshold: 0.5
+                });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            /* --- Keyboard navigation --- */
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowDown':
+                        case 'ArrowRight':
+                        case ' ':
+                        case 'PageDown':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide + 1);
+                            break;
+                        case 'ArrowUp':
+                        case 'ArrowLeft':
+                        case 'PageUp':
+                            e.preventDefault();
+                            this.goToSlide(this.currentSlide - 1);
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.goToSlide(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.goToSlide(this.totalSlides - 1);
+                            break;
+                    }
+                });
+            }
+
+            /* --- Touch / swipe support --- */
+            setupTouchNav() {
+                let touchStartY = 0;
+                let touchStartX = 0;
+
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                    touchStartX = e.touches[0].clientX;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const touchEndX = e.changedTouches[0].clientX;
+                    const diffY = touchStartY - touchEndY;
+                    const diffX = touchStartX - touchEndX;
+
+                    /* Only respond to vertical swipes larger than horizontal */
+                    if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 50) {
+                        if (diffY > 0) {
+                            this.goToSlide(this.currentSlide + 1);
+                        } else {
+                            this.goToSlide(this.currentSlide - 1);
+                        }
+                    }
+                }, { passive: true });
+            }
+
+            /* --- Progress bar --- */
+            setupProgressBar() {
+                this.progressBar = document.getElementById('progressBar');
+                this.updateProgressBar();
+            }
+
+            updateProgressBar() {
+                if (this.progressBar) {
+                    const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                    this.progressBar.style.width = progress + '%';
+                }
+            }
+
+            /* --- Navigation dots --- */
+            setupNavDots() {
+                const container = document.getElementById('navDots');
+                if (!container) return;
+
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    container.appendChild(dot);
+                });
+
+                this.navDotElements = container.querySelectorAll('.nav-dot');
+            }
+
+            updateNavDots() {
+                if (!this.navDotElements) return;
+                this.navDotElements.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+
+            /* --- Slide counter --- */
+            updateSlideCounter() {
+                const counter = document.getElementById('slideCounter');
+                if (counter) {
+                    counter.textContent = `${this.currentSlide + 1} / ${this.totalSlides}`;
+                }
+            }
+
+            /* --- Navigate to specific slide --- */
+            goToSlide(index) {
+                if (index < 0 || index >= this.totalSlides || this.isScrolling) return;
+                this.isScrolling = true;
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                setTimeout(() => { this.isScrolling = false; }, 800);
+            }
+        }
+
+        /* Initialize when DOM is ready */
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
