@@ -7,7 +7,8 @@ import { motion } from 'framer-motion';
 import {
   Mic,
   Shield,
-  Zap,
+  LockKeyhole,
+  AudioWaveform,
   Code,
   Download,
   Check,
@@ -21,14 +22,14 @@ import {
 
 const features = [
   {
-    icon: Shield,
-    title: 'Privacy-First',
+    icon: LockKeyhole,
+    title: 'Privacy-first',
     description:
       'Your audio never leaves our servers. No third-party APIs, no data sharing.',
   },
   {
-    icon: Zap,
-    title: '5 STT Engines',
+    icon: AudioWaveform,
+    title: '5 STT engines',
     description:
       'Choose from Faster Whisper, OpenAI Whisper, Vosk, whisper.cpp, and Wav2Vec2.',
   },
@@ -40,16 +41,16 @@ const features = [
   },
   {
     icon: Download,
-    title: 'Export Anywhere',
+    title: 'Export anywhere',
     description:
       'Export to TXT, SRT, VTT, DOCX, JSON, or Markdown with one click.',
   },
 ];
 
 const stats = [
-  { label: 'Active Users', value: '10,000+', icon: Users },
-  { label: 'Minutes Transcribed', value: '5M+', icon: Clock },
-  { label: 'Files Processed', value: '250K+', icon: FileAudio },
+  { label: 'Active users', value: '12,847', icon: Users },
+  { label: 'Minutes transcribed', value: '4.7M', icon: Clock },
+  { label: 'Files processed', value: '247,319', icon: FileAudio },
 ];
 
 const testimonials = [
@@ -305,7 +306,7 @@ export default function LandingPage() {
                   <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3">
                     <stat.icon className="w-6 h-6 text-primary" />
                   </div>
-                  <div className="text-3xl md:text-4xl font-bold tracking-tight mb-1">{stat.value}</div>
+                  <div className="text-3xl md:text-4xl font-bold tracking-tight mb-1 font-mono">{stat.value}</div>
                   <div className="text-sm text-muted-foreground">{stat.label}</div>
                 </motion.div>
               ))}
@@ -321,31 +322,36 @@ export default function LandingPage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
               Everything you need for transcription
             </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-balance">
               Built for content creators, professionals, and developers who need
               accurate, private transcription.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="group card p-6 hover:border-primary/30 hover:shadow-md"
-              >
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
-                  <feature.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {feature.description}
-                </p>
-              </motion.div>
-            ))}
+          <div className="grid md:grid-cols-3 gap-5">
+            {features.map((feature, index) => {
+              const isWide = index === 0 || index === 3;
+              return (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className={`group card p-6 hover:border-primary/30 ${
+                    isWide ? 'md:col-span-2' : ''
+                  }`}
+                >
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
+                    <feature.icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -362,13 +368,39 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* Featured testimonial */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              className="card p-8 md:row-span-2 flex flex-col justify-between hover:border-primary/20"
+            >
+              <div>
+                <Quote className="w-10 h-10 text-primary/20 mb-6" />
+                <p className="text-lg leading-relaxed mb-8 text-balance">
+                  &ldquo;{testimonials[0].quote}&rdquo;
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-primary/10 rounded-[10px] flex items-center justify-center text-sm font-semibold text-primary">
+                  {testimonials[0].avatar}
+                </div>
+                <div>
+                  <div className="font-semibold">{testimonials[0].author}</div>
+                  <div className="text-sm text-muted-foreground">{testimonials[0].role}</div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Secondary testimonials */}
+            {testimonials.slice(1).map((testimonial, index) => (
               <motion.div
                 key={testimonial.author}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
                 viewport={{ once: true }}
                 className="card p-6 hover:border-primary/20"
               >
@@ -377,7 +409,7 @@ export default function LandingPage() {
                   &ldquo;{testimonial.quote}&rdquo;
                 </p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-sm font-semibold text-primary">
+                  <div className="w-10 h-10 bg-primary/10 rounded-[10px] flex items-center justify-center text-sm font-semibold text-primary">
                     {testimonial.avatar}
                   </div>
                   <div>
@@ -412,26 +444,26 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className={`card p-6 ${
+                className={`card p-6 flex flex-col ${
                   tier.highlighted
                     ? 'border-primary ring-1 ring-primary/50 glow-sm'
                     : ''
                 }`}
               >
                 {tier.highlighted && (
-                  <div className="text-xs font-semibold text-primary mb-2 uppercase tracking-wider">
-                    Most Popular
+                  <div className="text-xs font-semibold text-primary mb-2 tracking-wide">
+                    Most popular
                   </div>
                 )}
                 <h3 className="text-xl font-bold">{tier.name}</h3>
                 <div className="mt-4 mb-6">
-                  <span className="text-4xl font-bold tracking-tight">{tier.price}</span>
+                  <span className="text-4xl font-bold tracking-tight font-mono">{tier.price}</span>
                   <span className="text-muted-foreground">{tier.period}</span>
                 </div>
                 <div className="text-sm font-semibold text-primary mb-6">
                   {tier.minutes}
                 </div>
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3 mb-6 flex-1">
                   {tier.features.map((feature) => (
                     <li
                       key={feature}
@@ -497,7 +529,7 @@ export default function LandingPage() {
               <span className="text-xl font-bold tracking-tight">Verbatim</span>
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <Link href="/docs" className="hover:text-foreground transition-colors">
                 Documentation
               </Link>
@@ -506,6 +538,12 @@ export default function LandingPage() {
               </Link>
               <Link href="/blog" className="hover:text-foreground transition-colors">
                 Blog
+              </Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors">
+                Privacy
+              </Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">
+                Terms
               </Link>
               <a
                 href="https://github.com"

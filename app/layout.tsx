@@ -74,6 +74,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans antialiased">
+        <a href="#main-content" className="skip-to-content">
+          Skip to content
+        </a>
         <ThemeProvider>
           <ToastProvider>
             {children}

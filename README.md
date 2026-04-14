@@ -215,31 +215,30 @@ Models are cached after first download in `~/.cache/` directories.
 
 OpenTranscribe features a **Sonic Precision** design system with warm gold on deep ink, creating an audio-grade luxury aesthetic.
 
-#### Landing Page
+#### Landing page (dark)
 ![Landing](assets/screenshots/landing.png)
-*Marketing page showcasing features, pricing, and testimonials*
 
-#### Transcription Interface
-![Transcribe](assets/screenshots/transcribe.png)
-*Main transcription UI with audio player and text editor*
+#### Landing page (light)
+![Landing Light](assets/screenshots/landing-light.png)
 
-#### Model Comparison
-![Comparison](assets/screenshots/comparison.png)
-*Compare outputs from all 5 STT models side-by-side*
+#### Features (bento grid)
+![Features](assets/screenshots/features.png)
 
-#### Export Options
-![Export](assets/screenshots/export.png)
-*Export transcriptions to multiple formats (TXT, SRT, VTT, DOCX, JSON)*
+#### Pricing
+![Pricing](assets/screenshots/pricing.png)
+
+#### Login
+![Login](assets/screenshots/login.png)
 
 ### Design System
 
 | Component | Description |
 |-----------|-------------|
-| **Color Palette** | Warm gold (#F59E0B) on deep ink background, ivory light mode |
-| **Typography** | Inter font family with careful attention to readability |
-| **Layout** | Clean, focused layouts with generous whitespace |
-| **Animations** | Subtle waveform animations, smooth transitions |
-| **Glass Effects** | Backdrop blur panels for depth and hierarchy |
+| **Color Palette** | Warm gold (#FBBF24) on deep ink (#08080F), warm ivory (#FAF9F5) light mode |
+| **Typography** | Outfit (sans), JetBrains Mono (code/numbers), tabular figures for data |
+| **Layout** | Bento grid features, asymmetric testimonials, flex-aligned pricing |
+| **Animations** | Framer Motion springs, waveform bars, staggered entry, scroll reveals |
+| **Glass Effects** | Backdrop blur panels with tinted hover shadows |
 
 ### Key UI Components
 
@@ -250,4 +249,4 @@ OpenTranscribe features a **Sonic Precision** design system with warm gold on de
 5. **Diff Viewer** - Highlighted differences between model outputs
 6. **Export Menu** - Format selection with preview
 
-> **Note**: Screenshots are stored in `assets/screenshots/`. Run the application and use your browser's dev tools to capture updated screenshots as needed.
+> **Note**: Screenshots live in `assets/screenshots/` (README gallery) and `docs/screenshots/` (full set with dark/light/mobile variants).

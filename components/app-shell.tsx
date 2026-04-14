@@ -170,7 +170,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           {/* Recent Transcriptions */}
           <div className="flex-1 px-4 py-3 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <h3 className="text-xs font-medium text-muted-foreground tracking-wide">
                 Recent
               </h3>
               <Link
@@ -284,7 +284,7 @@ export default function AppShell({ user, children }: AppShellProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main id="main-content" className="p-4 sm:p-6 lg:p-8">
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 8 }}
