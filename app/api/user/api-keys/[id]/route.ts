@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
 import { deleteApiKey, getApiKeyById } from '@/lib/db/api-keys';
 
 export async function DELETE(
@@ -7,20 +7,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
 
     const { id } = await params;
 
-    // Verify ownership
     const key = getApiKeyById(id);
-    if (!key || key.user_id !== user.id) {
+    if (!key || key.user_id !== auth.user.id) {
       return NextResponse.json(
         { error: 'API key not found' },
         { status: 404 }

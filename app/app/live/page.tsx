@@ -23,8 +23,8 @@ export default function LivePage() {
   const [recentTranscriptions, setRecentTranscriptions] = useState<SavedTranscription[]>([]);
   const [savedNotification, setSavedNotification] = useState(false);
 
-  const handleTranscriptionComplete = useCallback((text: string) => {
-    console.log('Transcription complete:', text.slice(0, 100) + '...');
+  const handleTranscriptionComplete = useCallback(() => {
+    // Streaming transcription completed; state lives in LiveRecorder until Save is clicked.
   }, []);
 
   const handleSave = useCallback((text: string, duration: number) => {
@@ -40,9 +40,6 @@ export default function LivePage() {
     // Show saved notification
     setSavedNotification(true);
     setTimeout(() => setSavedNotification(false), 2000);
-
-    // TODO: Save to history API
-    console.log('Saving transcription:', transcription);
   }, []);
 
   const formatTime = (date: Date) => {

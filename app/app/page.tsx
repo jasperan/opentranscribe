@@ -143,9 +143,8 @@ export default function AppPage() {
     setLiveTranscriptionText(text);
   }, []);
 
-  const handleLiveSave = useCallback((text: string) => {
-    // TODO: Save to history
-    console.log('Save live transcription:', text);
+  const handleLiveSave = useCallback((_text: string) => {
+    // Live transcription history persistence is not wired yet.
   }, []);
 
   return (

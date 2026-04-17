@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { getTranscriptionById } from '@/lib/db/transcriptions';
+import {
+  getTranscriptionById,
+  type TranscriptionSegment,
+} from '@/lib/db/transcriptions';
 
-interface Segment {
-  start: number;
-  end: number;
-  text: string;
-  speaker?: string;
-}
+type Segment = TranscriptionSegment;
 
 function formatSRT(segments: Segment[]): string {
   return segments

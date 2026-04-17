@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
 import { getDb } from '@/lib/db';
 
 interface UserSettings {
@@ -17,7 +17,6 @@ function getUserSettings(userId: string): UserSettings {
 
   if (row) return row;
 
-  // Create default settings
   db.prepare(
     `INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)`
   ).run(userId);
@@ -32,23 +31,17 @@ function getUserSettings(userId: string): UserSettings {
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const settings = getUserSettings(user.id);
+    const settings = getUserSettings(auth.user.id);
 
     return NextResponse.json({
-      email: user.email,
+      email: auth.user.email,
       defaultModel: settings.default_model,
       defaultLanguage: settings.default_language,
       emailNotifications: Boolean(settings.email_notifications),
-      createdAt: user.created_at,
+      createdAt: auth.user.created_at,
     });
   } catch (error) {
     console.error('Settings error:', error);
@@ -61,22 +54,14 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
 
     const body = await request.json();
     const db = getDb();
 
-    // Ensure row exists
-    db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(user.id);
+    db.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').run(auth.user.id);
 
-    // Update provided fields
     const updates: string[] = [];
     const values: (string | number)[] = [];
 
@@ -97,7 +82,7 @@ export async function PUT(request: NextRequest) {
       updates.push("updated_at = datetime('now')");
       db.prepare(
         `UPDATE user_settings SET ${updates.join(', ')} WHERE user_id = ?`
-      ).run(...values, user.id);
+      ).run(...values, auth.user.id);
     }
 
     return NextResponse.json({ success: true });

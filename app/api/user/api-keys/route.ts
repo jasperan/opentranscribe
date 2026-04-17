@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
 import { createApiKey, getUserApiKeys, canCreateApiKey } from '@/lib/db/api-keys';
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const keys = getUserApiKeys(user.id);
+    const keys = getUserApiKeys(auth.user.id);
 
     return NextResponse.json({ keys });
   } catch (error) {
@@ -27,14 +21,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
 
     const body = await request.json();
     const { name } = body;
@@ -46,7 +34,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate name length
     const trimmedName = name.trim();
     if (trimmedName.length === 0 || trimmedName.length > 100) {
       return NextResponse.json(
@@ -55,15 +42,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check API key limit
-    if (!canCreateApiKey(user.id)) {
+    if (!canCreateApiKey(auth.user.id)) {
       return NextResponse.json(
         { error: 'Maximum number of API keys reached (10)' },
         { status: 400 }
       );
     }
 
-    const { key, keyInfo } = createApiKey(user.id, trimmedName);
+    const { key, keyInfo } = createApiKey(auth.user.id, trimmedName);
 
     return NextResponse.json({ key, keyInfo });
   } catch (error) {
