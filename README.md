@@ -53,7 +53,7 @@ A Next.js app for transcribing audio files using multiple open-source STT models
 ## Setup
 
 <!-- one-command-install -->
-> **One-command install** — clone, configure, and run in a single step:
+> **One-command install**: clone, configure, and run in a single step:
 >
 > ```bash
 > curl -fsSL https://raw.githubusercontent.com/jasperan/opentranscribe/main/install.sh | bash
