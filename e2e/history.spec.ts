@@ -1,4 +1,36 @@
 import { test, expect, Page } from '@playwright/test';
+import { createTranscription, completeTranscription } from '../lib/db/transcriptions';
+import { getOrCreateUser } from '../lib/db/users';
+
+function uniqueEmail(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+}
+
+function seedCompletedTranscription(email: string) {
+  const user = getOrCreateUser(email);
+  const transcription = createTranscription(
+    user.id,
+    'customer-call.mp3',
+    'fp-customer-call'
+  );
+
+  completeTranscription(transcription.id, {
+    text: 'We shipped the debugger this morning.',
+    segments: [
+      {
+        start: 0,
+        end: 2.05,
+        text: 'We shipped the debugger this morning.',
+        speaker: 'Speaker 1',
+      },
+    ],
+    model: 'faster-whisper',
+    language: 'en',
+    durationSeconds: 125,
+    minutesCharged: 3,
+    hasDiarization: false,
+  });
+}
 
 // Helper to authenticate user
 async function authenticateUser(page: Page, email: string = 'history-test@example.com') {
@@ -80,6 +112,30 @@ test.describe('History Page', () => {
       await page.getByRole('link', { name: 'Start transcribing' }).click();
       await expect(page).toHaveURL('/app');
     });
+  });
+});
+
+test.describe('History Page - Populated', () => {
+  test('renders seeded transcriptions from the normalized history API', async ({ page }) => {
+    const email = uniqueEmail('history-populated');
+    seedCompletedTranscription(email);
+
+    await authenticateUser(page, email);
+    await page.goto('/app/history');
+
+    await expect(
+      page.getByRole('heading', { name: 'customer-call.mp3' })
+    ).toBeVisible();
+    await expect(
+      page.getByText('We shipped the debugger this morning.')
+    ).toBeVisible();
+    await expect(page.getByText('faster-whisper')).toBeVisible();
+    await expect(page.locator('#main-content').getByText('2:05')).toBeVisible();
+    await expect(page.getByText('Total Transcriptions')).toBeVisible();
+    await expect(page.getByText('Completed').first()).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'No transcriptions yet' })
+    ).not.toBeVisible();
   });
 });
 

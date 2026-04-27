@@ -23,9 +23,9 @@ import ThemeToggle from '@/components/theme-toggle';
 
 interface Transcription {
   id: string;
-  title: string;
+  filename: string;
   createdAt: string;
-  duration: number;
+  duration: number | null;
 }
 
 interface AppShellProps {
@@ -46,6 +46,10 @@ function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatOptionalDuration(seconds: number | null): string {
+  return typeof seconds === 'number' ? formatDuration(seconds) : '0:00';
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -207,12 +211,12 @@ export default function AppShell({ user, children }: AppShellProps) {
                         <FileAudio className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate group-hover:text-foreground transition-colors">
-                            {t.title || 'Untitled'}
+                            {t.filename || 'Untitled'}
                           </p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {formatDuration(t.duration)}
+                              {formatOptionalDuration(t.duration)}
                             </span>
                             <span>·</span>
                             <span>{formatRelativeTime(t.createdAt)}</span>

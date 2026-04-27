@@ -54,6 +54,11 @@ npm-debug.log*
 test-results/
 playwright-report/
 .playwright-mcp/
+tsconfig.tsbuildinfo
+
+# Local agent/workflow state
+.omc/
+.omx/
 
 # Claude-generated plan documents
 docs/plans/

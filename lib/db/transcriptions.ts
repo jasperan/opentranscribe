@@ -79,6 +79,22 @@ export function getUserTranscriptions(
   return rows.map(rowToTranscription);
 }
 
+export function getUserTranscriptionById(
+  userId: string,
+  id: string
+): Transcription | null {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT * FROM transcriptions
+       WHERE user_id = ? AND id = ?`
+    )
+    .get(userId, id) as TranscriptionRow | undefined;
+
+  if (!row) return null;
+  return rowToTranscription(row);
+}
+
 export function updateTranscriptionStatus(
   id: string,
   status: Transcription['status'],

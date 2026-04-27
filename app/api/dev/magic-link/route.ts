@@ -31,7 +31,11 @@ export async function POST(request: NextRequest) {
 
     // Create magic link and return the token directly (dev only!)
     const { token } = createMagicLink(email.trim().toLowerCase());
-    const verifyUrl = `http://localhost:3000/verify?token=${token}`;
+    const origin =
+      request.nextUrl.origin && request.nextUrl.origin !== 'null'
+        ? request.nextUrl.origin
+        : process.env.VERBATIM_URL || 'http://localhost:3000';
+    const verifyUrl = new URL(`/verify?token=${token}`, origin).toString();
 
     return NextResponse.json({
       success: true,

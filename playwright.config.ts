@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const PLAYWRIGHT_PORT = Number.parseInt(
+  process.env.PLAYWRIGHT_PORT ?? '3100',
+  10
+);
+const PLAYWRIGHT_BASE_URL = `http://localhost:${PLAYWRIGHT_PORT}`;
+
 /**
  * Playwright configuration for Verbatim Next.js application.
  */
@@ -14,7 +20,7 @@ export default defineConfig({
     ['list'],
   ],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: PLAYWRIGHT_BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
@@ -45,13 +51,15 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    command: `npm run dev -- --hostname 127.0.0.1 --port ${PLAYWRIGHT_PORT}`,
+    url: PLAYWRIGHT_BASE_URL,
+    reuseExistingServer: false,
     timeout: 120 * 1000,
     env: {
       NEXT_PUBLIC_DISABLE_DEV_SHORTCUTS: 'true',
       DISABLE_DEV_SHORTCUTS: 'true',
+      VERBATIM_URL: PLAYWRIGHT_BASE_URL,
+      NODE_OPTIONS: '',
     },
   },
 });

@@ -1,4 +1,48 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, APIRequestContext } from '@playwright/test';
+import { createTranscription, completeTranscription } from '../lib/db/transcriptions';
+import { getOrCreateUser } from '../lib/db/users';
+
+function uniqueEmail(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+}
+
+function seedCompletedTranscription(email: string) {
+  const user = getOrCreateUser(email);
+  const transcription = createTranscription(user.id, 'team-sync.mp3', 'fp-team-sync');
+
+  completeTranscription(transcription.id, {
+    text: 'Hello from the transcription API.',
+    segments: [
+      {
+        start: 0,
+        end: 1.5,
+        text: 'Hello from the transcription API.',
+        speaker: 'Speaker 1',
+      },
+    ],
+    model: 'faster-whisper',
+    language: 'en',
+    durationSeconds: 92,
+    minutesCharged: 2,
+    hasDiarization: true,
+  });
+
+  return transcription.id;
+}
+
+async function authenticateApiRequest(
+  request: APIRequestContext,
+  email: string
+): Promise<void> {
+  const magicLinkResponse = await request.post('/api/dev/magic-link', {
+    data: { email },
+  });
+  expect(magicLinkResponse.status()).toBe(200);
+
+  const { token } = await magicLinkResponse.json();
+  const verifyResponse = await request.get(`/api/auth/verify?token=${token}`);
+  expect(verifyResponse.status()).toBe(200);
+}
 
 test.describe('API Routes', () => {
   test.describe('Auth API', () => {
@@ -43,6 +87,18 @@ test.describe('API Routes', () => {
 
       // Should succeed even without auth (clears any existing session)
       expect(response.status()).toBe(200);
+    });
+
+    test('POST /api/dev/magic-link uses the current app origin in verifyUrl', async ({ request, baseURL }) => {
+      expect(baseURL).toBeTruthy();
+
+      const response = await request.post('/api/dev/magic-link', {
+        data: { email: uniqueEmail('magic-link-origin') },
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+      expect(body.verifyUrl).toBe(`${baseURL}/verify?token=${body.token}`);
     });
   });
 
@@ -93,6 +149,81 @@ test.describe('API Routes', () => {
       // Either 401 (unauthorized) or 405 (if only POST is supported)
       expect([401, 405]).toContain(response.status());
     });
+  });
+});
+
+test.describe('Transcriptions API', () => {
+  test('GET /api/transcriptions/[id] requires authentication', async ({ request }) => {
+    const response = await request.get('/api/transcriptions/nonexistent-id');
+
+    expect(response.status()).toBe(401);
+    const body = await response.json();
+    expect(body.error).toBeTruthy();
+  });
+
+  test('authenticated list and detail routes return DTO-shaped transcriptions', async ({ request }) => {
+    const email = uniqueEmail('transcriptions-dto');
+    const transcriptionId = seedCompletedTranscription(email);
+
+    await authenticateApiRequest(request, email);
+
+    const listResponse = await request.get('/api/transcriptions');
+    expect(listResponse.status()).toBe(200);
+
+    const listBody = await listResponse.json();
+    const transcription = listBody.transcriptions.find(
+      (item: { id: string }) => item.id === transcriptionId
+    );
+
+    expect(transcription).toMatchObject({
+      id: transcriptionId,
+      filename: 'team-sync.mp3',
+      text: 'Hello from the transcription API.',
+      segments: [
+        {
+          start: 0,
+          end: 1.5,
+          text: 'Hello from the transcription API.',
+          speaker: 'Speaker 1',
+        },
+      ],
+      model: 'faster-whisper',
+      language: 'en',
+      duration: 92,
+      minutesCharged: 2,
+      hasDiarization: true,
+      status: 'completed',
+      errorMessage: null,
+      audioFingerprint: 'fp-team-sync',
+      sourceMediaAvailable: false,
+      sourceMediaKind: null,
+    });
+    expect(transcription.createdAt).toBeTruthy();
+    expect(Array.isArray(transcription.segments)).toBe(true);
+    expect(transcription).not.toHaveProperty('created_at');
+    expect(transcription).not.toHaveProperty('result_segments');
+
+    const detailResponse = await request.get(
+      `/api/transcriptions/${transcriptionId}`
+    );
+    expect(detailResponse.status()).toBe(200);
+
+    const detailBody = await detailResponse.json();
+    expect(detailBody.transcription).toEqual(transcription);
+  });
+
+  test('GET /api/transcriptions/[id] returns 404 for another user\'s transcription', async ({ request }) => {
+    const ownerEmail = uniqueEmail('transcription-owner');
+    const viewerEmail = uniqueEmail('transcription-viewer');
+    const transcriptionId = seedCompletedTranscription(ownerEmail);
+
+    await authenticateApiRequest(request, viewerEmail);
+
+    const response = await request.get(`/api/transcriptions/${transcriptionId}`);
+
+    expect(response.status()).toBe(404);
+    const body = await response.json();
+    expect(body.error).toContain('not found');
   });
 });
 
