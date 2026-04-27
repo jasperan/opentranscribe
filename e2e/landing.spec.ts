@@ -23,25 +23,22 @@ test.describe('Landing Page', () => {
 
     // Auth links
     await expect(nav.getByRole('link', { name: 'Sign in' })).toBeVisible();
-    await expect(nav.getByRole('link', { name: 'Get Started' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Start' })).toBeVisible();
   });
 
   test('displays hero section with correct content', async ({ page }) => {
     // Privacy badge - use first() since it appears in hero
-    await expect(page.getByText('Privacy-first transcription').first()).toBeVisible();
+    await expect(page.getByText('Private speech-to-text infrastructure').first()).toBeVisible();
 
     // Main headline - look for heading element
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Transcribe audio');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Transcription that stays inside your stack');
 
     // Description
-    await expect(page.getByText('High-accuracy transcription powered by 5 open-source STT engines.')).toBeVisible();
+    await expect(page.getByText('Verbatim turns long audio into searchable transcripts')).toBeVisible();
 
     // CTA buttons
-    await expect(page.getByRole('link', { name: 'Start for free' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View API Docs' })).toBeVisible();
-
-    // Free tier mention
-    await expect(page.getByText('500 free minutes/month')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Start with 500 minutes' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Read API docs' })).toBeVisible();
   });
 
   test('displays features section', async ({ page }) => {
@@ -49,13 +46,13 @@ test.describe('Landing Page', () => {
     await page.locator('#features').scrollIntoViewIfNeeded();
 
     // Section heading
-    await expect(page.getByRole('heading', { name: 'Everything you need for transcription' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Built for teams that treat audio as operational data.' })).toBeVisible();
 
     // Feature cards - use heading role to be specific
-    await expect(page.getByRole('heading', { name: 'Privacy-First' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: '5 STT Engines' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Developer API' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Export Anywhere' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Local-first privacy posture' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Model choice without workflow drift' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'API-shaped for production teams' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Formats for editing and archives' })).toBeVisible();
   });
 
   test('displays pricing section with all tiers', async ({ page }) => {
@@ -63,7 +60,7 @@ test.describe('Landing Page', () => {
     await page.locator('#pricing').scrollIntoViewIfNeeded();
 
     // Section heading
-    await expect(page.getByRole('heading', { name: 'Simple, transparent pricing' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Pricing that scales with minutes.' })).toBeVisible();
 
     // Pricing tiers - use heading role to be specific
     const pricingSection = page.locator('#pricing');
@@ -89,8 +86,8 @@ test.describe('Landing Page', () => {
   });
 
   test('displays CTA section', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Ready to get started?' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Create free account' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Turn raw audio into reviewable text without sending it around the internet.' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Create account' })).toBeVisible();
   });
 
   test('displays footer with links', async ({ page }) => {
@@ -114,9 +111,9 @@ test.describe('Landing Page', () => {
     await expect(page.locator('#pricing')).toBeInViewport();
   });
 
-  test('Get Started button navigates to login', async ({ page }) => {
+  test('Start button navigates to login', async ({ page }) => {
     const nav = page.locator('nav');
-    await nav.getByRole('link', { name: 'Get Started' }).click();
+    await nav.getByRole('link', { name: 'Start' }).click();
     await expect(page).toHaveURL('/login');
   });
 
@@ -136,7 +133,7 @@ test.describe('Landing Page - Responsive', () => {
 
     // Hero content visible
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Start for free' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Start with 500 minutes' })).toBeVisible();
   });
 
   test('tablet: displays correctly', async ({ page }) => {

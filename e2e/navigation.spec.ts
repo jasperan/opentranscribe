@@ -6,9 +6,9 @@ test.describe('Navigation Flow', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Verbatim/);
 
-    // Click Get Started (use nav scope to avoid duplicate matches)
+    // Click Start (use nav scope to avoid duplicate matches)
     const nav = page.locator('nav');
-    await nav.getByRole('link', { name: 'Get Started' }).click();
+    await nav.getByRole('link', { name: 'Start' }).click();
     await expect(page).toHaveURL('/login');
 
     // Verify login page loaded
@@ -18,8 +18,8 @@ test.describe('Navigation Flow', () => {
   test('landing page CTA buttons work correctly', async ({ page }) => {
     await page.goto('/');
 
-    // Test "Start for free" button
-    await page.getByRole('link', { name: 'Start for free' }).click();
+    // Test primary hero CTA
+    await page.getByRole('link', { name: 'Start with 500 minutes' }).click();
     await expect(page).toHaveURL('/login');
 
     // Go back to landing

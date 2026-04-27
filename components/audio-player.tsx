@@ -342,7 +342,7 @@ const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(function Aud
             onClick={togglePlay}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white hover:bg-primary/90 transition-colors shadow-lg"
+            className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_14px_28px_-20px_rgba(15,23,42,0.65)]"
             title="Play/Pause (Space or K)"
           >
             {isPlaying ? (

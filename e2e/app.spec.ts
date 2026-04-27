@@ -28,8 +28,8 @@ test.describe('App Page (Authenticated)', () => {
   test('displays transcription interface when authenticated', async ({ page, request }) => {
     await authenticateUser(page, request, 'transcribe-ui@example.com');
 
-    await expect(page.getByRole('heading', { name: 'Transcribe Audio' })).toBeVisible();
-    await expect(page.getByText('Upload an audio file to get a high-accuracy transcription')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Convert audio into a reviewable transcript.' })).toBeVisible();
+    await expect(page.getByText('Upload a file or record live audio')).toBeVisible();
   });
 
   test('displays usage meter', async ({ page, request }) => {
@@ -43,8 +43,8 @@ test.describe('App Page (Authenticated)', () => {
   test('displays diarization toggle', async ({ page, request }) => {
     await authenticateUser(page, request, 'diarization-toggle@example.com');
 
-    await expect(page.getByText('Speaker Diarization')).toBeVisible();
-    await expect(page.getByText('Identify who said what')).toBeVisible();
+    await expect(page.getByText('Speaker diarization')).toBeVisible();
+    await expect(page.getByText('Identify speakers in interviews and meetings')).toBeVisible();
   });
 
   test('can toggle diarization', async ({ page, request }) => {
@@ -158,7 +158,7 @@ test.describe('App - File Upload Flow', () => {
     });
 
     // Should show uploading/transcribing state
-    await expect(page.getByText(/Uploading|Transcribing/)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Securing upload|Building transcript/)).toBeVisible({ timeout: 5000 });
   });
 
   test('displays transcription result on success', async ({ page, request }) => {
@@ -247,7 +247,7 @@ test.describe('App - File Upload Flow', () => {
     await expect(page.getByText('Subtitles (SRT)', { exact: true })).toBeVisible();
     await expect(page.getByText('Subtitles (VTT)', { exact: true })).toBeVisible();
     await expect(page.getByText('Word Document', { exact: true })).toBeVisible();
-    await expect(page.getByText('JSON', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /JSON/ })).toBeVisible();
     await expect(page.getByText('Markdown', { exact: true })).toBeVisible();
   });
 
@@ -352,10 +352,10 @@ test.describe('App - Transcription View', () => {
     // Wait for success state
     await expect(page.getByText('Transcription complete')).toBeVisible({ timeout: 10000 });
 
-    // Now using tabs: Transcript, Summary, Translation (use exact match)
+    // Transcript is active; future enhancement tabs are visible but disabled.
     await expect(page.getByRole('button', { name: 'Transcript', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Summary', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Translation', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Summary.*Soon/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /Translation.*Soon/ })).toBeDisabled();
 
     // Default is Transcript tab, which shows the text and timestamps inline
     // The timestamps are displayed in the segments

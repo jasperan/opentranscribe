@@ -98,7 +98,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       {/* Mobile sidebar backdrop */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -106,7 +106,7 @@ export default function AppShell({ user, children }: AppShellProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-foreground/35 backdrop-blur-sm lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -114,22 +114,22 @@ export default function AppShell({ user, children }: AppShellProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card/95 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl transform transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${sidebarOpen ? 'visible' : 'invisible lg:visible'}`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-border/80">
             <Link href="/app" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm">
-                <Mic className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                <Mic className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-lg font-bold tracking-tight">Verbatim</span>
+              <span className="text-lg font-semibold tracking-tight">Verbatim</span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 hover:bg-accent rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="lg:hidden p-2 hover:bg-accent rounded-xl min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Close navigation menu"
             >
               <X className="w-5 h-5" />
@@ -144,16 +144,16 @@ export default function AppShell({ user, children }: AppShellProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 min-h-[44px] ${
+                  className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 min-h-[44px] active:scale-[0.99] ${
                     isActive
-                      ? 'bg-primary text-white shadow-sm'
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
                       : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="sidebarActiveIndicator"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full"
                       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     />
                   )}
@@ -165,7 +165,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           </nav>
 
           {/* Divider */}
-          <div className="mx-4 border-t border-border" />
+          <div className="mx-4 border-t border-border/80" />
 
           {/* Recent Transcriptions */}
           <div className="flex-1 px-4 py-3 overflow-hidden flex flex-col">
@@ -201,7 +201,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                   >
                     <Link
                       href={`/app/history?id=${t.id}`}
-                      className="block p-2 rounded-lg hover:bg-accent transition-colors group"
+                    className="block p-2 rounded-xl hover:bg-accent transition-colors group"
                     >
                       <div className="flex items-start gap-2">
                         <FileAudio className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -223,7 +223,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                   </motion.div>
                 ))
               ) : (
-                <div className="text-center py-6">
+                <div className="rounded-xl border border-dashed border-border bg-background/60 px-3 py-5 text-center">
                   <FileAudio className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">No transcriptions yet</p>
                 </div>
@@ -232,9 +232,9 @@ export default function AppShell({ user, children }: AppShellProps) {
           </div>
 
           {/* User section */}
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border/80">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center">
                 <span className="text-primary font-medium">
                   {user.email[0].toUpperCase()}
                 </span>
@@ -248,7 +248,7 @@ export default function AppShell({ user, children }: AppShellProps) {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors min-h-[44px]"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-colors min-h-[44px] active:scale-[0.99]"
             >
               <LogOut className="w-4 h-4" />
               Sign out
@@ -260,20 +260,20 @@ export default function AppShell({ user, children }: AppShellProps) {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Header - visible on both mobile and desktop */}
-        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 lg:px-8 bg-background/80 backdrop-blur-xl border-b border-border">
+        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 lg:px-8 bg-background/82 backdrop-blur-xl border-b border-border/80">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-accent rounded-lg lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 hover:bg-accent rounded-xl lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-2 lg:hidden">
-              <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
-                <Mic className="w-4 h-4 text-white" />
+              <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
+                <Mic className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="font-bold">Verbatim</span>
+              <span className="font-semibold">Verbatim</span>
             </div>
           </div>
 

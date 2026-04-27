@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -18,59 +18,67 @@ import {
   Users,
   Clock,
   FileAudio,
+  Radio,
+  Server,
+  Activity,
+  Play,
+  TerminalSquare,
 } from 'lucide-react';
 
 const features = [
   {
     icon: LockKeyhole,
-    title: 'Privacy-first',
+    title: 'Local-first privacy posture',
     description:
-      'Your audio never leaves our servers. No third-party APIs, no data sharing.',
+      'Keep files on infrastructure you control, with no third-party transcription API in the default path.',
   },
   {
     icon: AudioWaveform,
-    title: '5 STT engines',
+    title: 'Model choice without workflow drift',
     description:
-      'Choose from Faster Whisper, OpenAI Whisper, Vosk, whisper.cpp, and Wav2Vec2.',
+      'Route each job through Faster Whisper, OpenAI Whisper, Vosk, whisper.cpp, or Wav2Vec2 from the same interface.',
   },
   {
     icon: Code,
-    title: 'Developer API',
+    title: 'API-shaped for production teams',
     description:
-      'Full REST API with SDKs. Integrate transcription into your workflow.',
+      'Submit files, track status, and export transcripts through a REST API that mirrors the web workflow.',
   },
   {
     icon: Download,
-    title: 'Export anywhere',
+    title: 'Formats for editing and archives',
     description:
-      'Export to TXT, SRT, VTT, DOCX, JSON, or Markdown with one click.',
+      'Move from rough transcript to SRT, VTT, TXT, DOCX, JSON, or Markdown without extra conversion steps.',
   },
 ];
 
 const stats = [
-  { label: 'Active users', value: '12,847', icon: Users },
-  { label: 'Minutes transcribed', value: '4.7M', icon: Clock },
-  { label: 'Files processed', value: '247,319', icon: FileAudio },
+  { label: 'Active workspaces', value: '12,847', icon: Users },
+  { label: 'Minutes processed', value: '4.7M', icon: Clock },
+  { label: 'Audio files indexed', value: '247,319', icon: FileAudio },
 ];
 
 const testimonials = [
   {
-    quote: "Verbatim has completely transformed how I handle podcast transcriptions. The accuracy is incredible and I love that my data stays private.",
-    author: "Sarah Chen",
-    role: "Podcast Producer",
-    avatar: "SC",
+    quote:
+      'The handoff from upload to review is calm enough for client interviews and fast enough for daily edit notes.',
+    author: 'Mira Halvorsen',
+    role: 'Documentary editor',
+    avatar: 'MH',
   },
   {
-    quote: "As a developer, the API is a dream to work with. Clean documentation, reliable service, and the pricing is unbeatable.",
-    author: "Marcus Johnson",
-    role: "Full-Stack Developer",
-    avatar: "MJ",
+    quote:
+      'We replaced three small scripts with one API path and kept sensitive board recordings inside our own stack.',
+    author: 'Anton Velez',
+    role: 'Platform engineer',
+    avatar: 'AV',
   },
   {
-    quote: "We switched from a major competitor and cut our transcription costs by 80%. The speaker diarization feature is perfect for our interview recordings.",
-    author: "Emily Rodriguez",
-    role: "Content Manager",
-    avatar: "ER",
+    quote:
+      'The diarized export gives our research team a clean first pass before anyone opens the original audio.',
+    author: 'Leonie Park',
+    role: 'User research lead',
+    avatar: 'LP',
   },
 ];
 
@@ -80,13 +88,8 @@ const pricingTiers = [
     price: '$0',
     period: 'forever',
     minutes: '500 min/month',
-    features: [
-      'All 5 STT engines',
-      'All export formats',
-      'API access',
-      'Transcription history',
-    ],
-    cta: 'Get Started',
+    features: ['All STT engines', 'Core exports', 'API access', 'Transcript history'],
+    cta: 'Start free',
     highlighted: false,
   },
   {
@@ -94,13 +97,8 @@ const pricingTiers = [
     price: '$8',
     period: '/month',
     minutes: '3,000 min/month',
-    features: [
-      'Everything in Free',
-      '6x more minutes',
-      'Priority processing',
-      'Email support',
-    ],
-    cta: 'Start Free Trial',
+    features: ['Everything in Free', 'Priority queue', 'Email support', 'Long-form uploads'],
+    cta: 'Start trial',
     highlighted: true,
   },
   {
@@ -108,13 +106,8 @@ const pricingTiers = [
     price: '$19',
     period: '/month',
     minutes: '10,000 min/month',
-    features: [
-      'Everything in Creator',
-      '20x more minutes',
-      'Speaker diarization',
-      'Priority support',
-    ],
-    cta: 'Start Free Trial',
+    features: ['Everything in Creator', 'Speaker diarization', 'Team-ready exports', 'Priority support'],
+    cta: 'Start trial',
     highlighted: false,
   },
   {
@@ -122,50 +115,136 @@ const pricingTiers = [
     price: '$39',
     period: '/month',
     minutes: 'Unlimited',
-    features: [
-      'Everything in Pro',
-      'No minute limits',
-      'Highest priority',
-      'Dedicated support',
-    ],
-    cta: 'Start Free Trial',
+    features: ['Everything in Pro', 'No minute ceiling', 'Fastest queue', 'Dedicated support'],
+    cta: 'Start trial',
     highlighted: false,
   },
 ];
 
-// Audio waveform bars for the hero decoration
-function WaveformDecoration() {
-  const bars = Array.from({ length: 80 }, (_, i) => ({
-    height: 20 + Math.sin(i * 0.3) * 55 + Math.cos(i * 0.7) * 25,
-    delay: i * 0.04,
-    duration: 1.2 + Math.sin(i * 0.5) * 0.6,
-  }));
+const consoleRows = [
+  { label: 'voice-memo-0419.m4a', status: 'Transcribing', value: '72%' },
+  { label: 'founder-interview.wav', status: 'Diarized', value: '8 speakers' },
+  { label: 'product-sync.flac', status: 'Exported', value: 'SRT + DOCX' },
+];
 
+function LogoMark({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden" aria-hidden="true">
-      <div className="flex items-end gap-[2px] h-48">
-        {bars.map((bar, i) => (
-          <div
-            key={i}
-            className="w-[2.5px] bg-primary rounded-full origin-bottom animate-waveform-bar opacity-[0.04]"
-            style={{
-              height: `${bar.height}px`,
-              animationDelay: `${bar.delay}s`,
-              animationDuration: `${bar.duration}s`,
-            }}
-          />
-        ))}
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+        <Mic className="h-5 w-5" />
       </div>
+      {!compact && <span className="text-xl font-semibold tracking-tight">Verbatim</span>}
     </div>
   );
 }
 
+function WaveformDecoration() {
+  const bars = Array.from({ length: 64 }, (_, i) => ({
+    height: Math.max(12, 18 + Math.sin(i * 0.32) * 38 + Math.cos(i * 0.71) * 18).toFixed(2),
+    delay: (i * 0.035).toFixed(2),
+    duration: (1.15 + Math.sin(i * 0.45) * 0.35).toFixed(2),
+  }));
+
+  return (
+    <div className="flex h-32 w-full min-w-0 items-end gap-1 overflow-hidden" aria-hidden="true">
+      {bars.map((bar, index) => (
+        <span
+          key={index}
+          className="block min-w-[2px] flex-1 rounded-full bg-primary/45 animate-waveform-bar"
+          style={{
+            height: `${bar.height}px`,
+            animationDelay: `${bar.delay}s`,
+            animationDuration: `${bar.duration}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function HeroConsolePreview() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+      className="relative min-w-0"
+    >
+      <div className="absolute inset-x-10 top-8 h-px bg-primary/30" aria-hidden="true" />
+      <div className="card overflow-hidden rounded-[1.75rem] border-primary/15 bg-card/95">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+            <span className="text-sm font-semibold">Live transcript desk</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Radio className="h-3.5 w-3.5" />
+            24 kHz stream
+          </div>
+        </div>
+
+        <div className="grid min-w-0 gap-0 md:grid-cols-[1.08fr_0.92fr]">
+          <div className="min-w-0 space-y-5 border-b border-border p-5 md:border-b-0 md:border-r">
+            <div className="rounded-2xl border border-border bg-background/70 p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Waveform
+                </span>
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                  encrypted
+                </span>
+              </div>
+              <WaveformDecoration />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-xl border border-border bg-background/70 p-3">
+                  <stat.icon className="mb-2 h-4 w-4 text-primary" />
+                  <div className="font-mono text-lg font-semibold tracking-tight">{stat.value}</div>
+                  <div className="mt-1 text-[11px] leading-tight text-muted-foreground">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-w-0 space-y-3 p-5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Queue</span>
+              <span>model: faster-whisper</span>
+            </div>
+            {consoleRows.map((row, index) => (
+              <motion.div
+                key={row.label}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.25 + index * 0.08, duration: 0.35 }}
+                className="rounded-xl border border-border bg-background/70 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{row.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{row.status}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 font-mono text-xs text-primary">
+                    {row.value}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+            <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3 text-sm leading-relaxed text-muted-foreground">
+              <span className="font-medium text-foreground">00:14</span> We can publish the rough cut after captions are checked.
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function LandingPage() {
-  const [email, setEmail] = useState('');
   const router = useRouter();
 
-  // In development mode, skip landing page and go straight to the app
-  // (disabled during E2E testing via NEXT_PUBLIC_DISABLE_DEV_SHORTCUTS)
   const devShortcutsEnabled =
     process.env.NODE_ENV === 'development' &&
     process.env.NEXT_PUBLIC_DISABLE_DEV_SHORTCUTS !== 'true';
@@ -176,389 +255,298 @@ export default function LandingPage() {
     }
   }, [router, devShortcutsEnabled]);
 
-  // Show nothing while redirecting in dev mode
   if (devShortcutsEnabled) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm">
-                <Mic className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold tracking-tight">Verbatim</span>
-            </div>
+    <div className="min-h-[100dvh] bg-background">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-background/82 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link href="/" aria-label="Verbatim home">
+            <LogoMark />
+          </Link>
 
-            <div className="hidden md:flex items-center gap-8">
-              <Link
-                href="#features"
-                className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-              >
-                Features
-              </Link>
-              <Link
-                href="#pricing"
-                className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-              >
-                Pricing
-              </Link>
-              <Link
-                href="/docs"
-                className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-              >
-                Docs
-              </Link>
-            </div>
+          <div className="hidden items-center gap-7 md:flex">
+            <Link href="#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              Features
+            </Link>
+            <Link href="#pricing" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              Pricing
+            </Link>
+            <Link href="/docs" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              Docs
+            </Link>
+          </div>
 
-            <div className="flex items-center gap-4">
-              <Link
-                href="/login"
-                className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-              >
-                Sign in
-              </Link>
-              <Link href="/login" className="btn-primary text-sm">
-                Get Started
-              </Link>
-            </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/login" className="btn-ghost hidden text-sm sm:inline-flex">
+              Sign in
+            </Link>
+            <Link href="/login" className="btn-primary inline-flex items-center gap-2 text-sm">
+              Start
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-36 pb-12 px-4 overflow-hidden">
-        {/* Background atmosphere */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full bg-primary/[0.06] blur-[150px]" />
-          <div className="absolute top-[55%] right-[20%] w-[300px] h-[300px] rounded-full bg-orange-500/[0.03] blur-[100px]" />
-        </div>
+      <main id="main-content">
+        <section className="relative overflow-hidden border-b border-border/60 px-4 pb-16 pt-28 sm:px-6 lg:px-8 lg:pb-24 lg:pt-36">
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute inset-0 noise-bg opacity-[0.018]" />
+            <div className="absolute inset-x-0 top-0 h-px bg-primary/25" />
+            <div className="absolute left-0 top-24 h-full w-px bg-border/70 lg:left-[8vw]" />
+            <div className="absolute right-0 top-24 h-full w-px bg-border/70 lg:right-[8vw]" />
+          </div>
 
-        {/* Noise texture */}
-        <div className="absolute inset-0 noise-bg opacity-[0.012] mix-blend-overlay pointer-events-none" aria-hidden="true" />
+          <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="min-w-0 max-w-2xl"
+            >
+              <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-sm font-medium text-primary">
+                <Shield className="h-4 w-4" />
+                Private speech-to-text infrastructure
+              </div>
 
-        {/* Audio waveform decoration */}
-        <WaveformDecoration />
+              <h1 className="text-4xl font-semibold leading-none tracking-tight text-balance sm:text-5xl md:text-6xl">
+                Transcription that stays inside your stack.
+              </h1>
 
-        <div className="relative max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8">
-              <Shield className="w-4 h-4" />
-              Privacy-first transcription
-            </div>
+              <p className="mt-7 max-w-[62ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
+                Verbatim turns long audio into searchable transcripts, captions, and developer-ready exports while keeping sensitive files away from third-party STT APIs.
+              </p>
 
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-8 text-balance leading-[0.95]">
-              Transcribe audio with
-              <span className="gradient-text"> complete privacy</span>
-            </h1>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link href="/login" className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3">
+                  Start with 500 minutes
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link href="/docs" className="btn-secondary inline-flex items-center justify-center gap-2 px-6 py-3">
+                  <TerminalSquare className="h-5 w-5" />
+                  Read API docs
+                </Link>
+              </div>
 
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto text-balance leading-relaxed">
-              High-accuracy transcription powered by 5 open-source STT engines.
-              Your data never leaves our servers. No third-party APIs.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/login"
-                className="btn-primary inline-flex items-center gap-2 text-lg px-8 py-3.5 rounded-xl"
-              >
-                Start for free
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link
-                href="/docs"
-                className="btn-secondary inline-flex items-center gap-2 text-lg px-8 py-3.5 rounded-xl"
-              >
-                <Code className="w-5 h-5" />
-                View API Docs
-              </Link>
-            </div>
-
-            <p className="text-sm text-muted-foreground mt-6">
-              500 free minutes/month. No credit card required.
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Section — Glass panel floating between sections */}
-      <section className="relative z-10 -mt-2 px-4 pb-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="glass-panel rounded-2xl p-8 md:p-10">
-            <div className="grid md:grid-cols-3 gap-8 md:gap-12">
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="text-center"
-                >
-                  <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-xl mb-3">
-                    <stat.icon className="w-6 h-6 text-primary" />
+              <div className="mt-10 grid max-w-xl grid-cols-1 divide-y divide-border border-y border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="px-0 py-4 sm:first:pr-4 sm:last:pl-4 sm:[&:not(:first-child):not(:last-child)]:px-4">
+                    <div className="font-mono text-xl font-semibold tracking-tight sm:text-2xl">{stat.value}</div>
+                    <div className="mt-1 text-xs leading-tight text-muted-foreground">{stat.label}</div>
                   </div>
-                  <div className="text-3xl md:text-4xl font-bold tracking-tight mb-1 font-mono">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                ))}
+              </div>
+            </motion.div>
+
+            <HeroConsolePreview />
+          </div>
+        </section>
+
+        <section id="features" className="px-4 py-20 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
+              <div>
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
+                  <Server className="h-5 w-5 text-primary" />
+                </div>
+                <h2 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">
+                  Built for teams that treat audio as operational data.
+                </h2>
+                <p className="mt-5 max-w-[55ch] leading-relaxed text-muted-foreground">
+                  Uploads, model routing, review, and export are kept in one steady workflow instead of scattered across scripts and vendor consoles.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-6">
+                {features.map((feature, index) => {
+                  const isWide = index === 0 || index === 3;
+                  return (
+                    <motion.div
+                      key={feature.title}
+                      initial={{ opacity: 0, y: 18 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.45, delay: index * 0.08 }}
+                      viewport={{ once: true, margin: '-80px' }}
+                      className={`card p-6 ${isWide ? 'md:col-span-4' : 'md:col-span-2'}`}
+                    >
+                      <feature.icon className="mb-8 h-6 w-6 text-primary" />
+                      <h3 className="text-lg font-semibold">{feature.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-y border-border/60 bg-card/35 px-4 py-20 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45 }}
+                viewport={{ once: true }}
+                className="card flex min-h-[320px] flex-col justify-between p-8"
+              >
+                <Quote className="h-10 w-10 text-primary/35" />
+                <p className="mt-8 max-w-3xl text-2xl font-medium leading-tight text-balance md:text-3xl">
+                  &ldquo;{testimonials[0].quote}&rdquo;
+                </p>
+                <div className="mt-10 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-sm font-semibold text-primary">
+                    {testimonials[0].avatar}
+                  </div>
+                  <div>
+                    <div className="font-semibold">{testimonials[0].author}</div>
+                    <div className="text-sm text-muted-foreground">{testimonials[0].role}</div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <div className="grid gap-6">
+                {testimonials.slice(1).map((testimonial, index) => (
+                  <motion.div
+                    key={testimonial.author}
+                    initial={{ opacity: 0, y: 18 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: index * 0.08 }}
+                    viewport={{ once: true }}
+                    className="card p-6"
+                  >
+                    <p className="leading-relaxed text-muted-foreground">&ldquo;{testimonial.quote}&rdquo;</p>
+                    <div className="mt-6 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-sm font-semibold">
+                        {testimonial.avatar}
+                      </div>
+                      <div>
+                        <div className="font-medium">{testimonial.author}</div>
+                        <div className="text-sm text-muted-foreground">{testimonial.role}</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="px-4 py-20 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-12 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+              <div>
+                <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Pricing that scales with minutes.</h2>
+                <p className="mt-4 max-w-[58ch] leading-relaxed text-muted-foreground">
+                  Every tier keeps the same core workflow. Upgrade when volume, speed, or support expectations increase.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+                Speaker diarization is available on all tiers for 2x minute usage.
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[0.85fr_1.15fr_0.95fr_0.95fr]">
+              {pricingTiers.map((tier, index) => (
+                <motion.div
+                  key={tier.name}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: index * 0.06 }}
+                  viewport={{ once: true }}
+                  className={`card flex flex-col p-6 ${tier.highlighted ? 'border-primary/60 bg-primary/5' : ''}`}
+                >
+                  {tier.highlighted && (
+                    <div className="mb-3 w-fit rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      Most selected
+                    </div>
+                  )}
+                  <h3 className="text-xl font-semibold">{tier.name}</h3>
+                  <div className="mt-5">
+                    <span className="font-mono text-4xl font-semibold tracking-tight">{tier.price}</span>
+                    <span className="text-muted-foreground">{tier.period}</span>
+                  </div>
+                  <div className="mt-3 text-sm font-medium text-primary">{tier.minutes}</div>
+                  <ul className="mt-7 flex-1 space-y-3">
+                    {tier.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/login"
+                    className={`mt-7 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
+                      tier.highlighted
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    {tier.cta}
+                  </Link>
                 </motion.div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-              Everything you need for transcription
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-balance">
-              Built for content creators, professionals, and developers who need
-              accurate, private transcription.
-            </p>
+        <section className="px-4 pb-20 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-6 rounded-[2rem] border border-border bg-card p-6 md:grid-cols-[1fr_auto] md:items-center md:p-8">
+            <div>
+              <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
+                <Activity className="h-4 w-4" />
+                Ready for the next file
+              </div>
+              <h2 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance">
+                Turn raw audio into reviewable text without sending it around the internet.
+              </h2>
+            </div>
+            <Link href="/login" className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3">
+              <Play className="h-5 w-5" />
+              Create account
+            </Link>
           </div>
+        </section>
+      </main>
 
-          <div className="grid md:grid-cols-3 gap-5">
-            {features.map((feature, index) => {
-              const isWide = index === 0 || index === 3;
-              return (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className={`group card p-6 hover:border-primary/30 ${
-                    isWide ? 'md:col-span-2' : ''
-                  }`}
-                >
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
-                    <feature.icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-                    {feature.description}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <footer className="border-t border-border/60 px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <LogoMark />
 
-      {/* Testimonials Section */}
-      <section className="py-20 px-4 border-t border-border/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-              Loved by creators and developers
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Join thousands of users who trust Verbatim for their transcription needs.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-5">
-            {/* Featured testimonial */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="card p-8 md:row-span-2 flex flex-col justify-between hover:border-primary/20"
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <Link href="/docs" className="transition-colors hover:text-foreground">
+              Documentation
+            </Link>
+            <Link href="/pricing" className="transition-colors hover:text-foreground">
+              Pricing
+            </Link>
+            <Link href="/blog" className="transition-colors hover:text-foreground">
+              Blog
+            </Link>
+            <Link href="/privacy" className="transition-colors hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/terms" className="transition-colors hover:text-foreground">
+              Terms
+            </Link>
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-foreground"
+              aria-label="GitHub"
             >
-              <div>
-                <Quote className="w-10 h-10 text-primary/20 mb-6" />
-                <p className="text-lg leading-relaxed mb-8 text-balance">
-                  &ldquo;{testimonials[0].quote}&rdquo;
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-primary/10 rounded-[10px] flex items-center justify-center text-sm font-semibold text-primary">
-                  {testimonials[0].avatar}
-                </div>
-                <div>
-                  <div className="font-semibold">{testimonials[0].author}</div>
-                  <div className="text-sm text-muted-foreground">{testimonials[0].role}</div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Secondary testimonials */}
-            {testimonials.slice(1).map((testimonial, index) => (
-              <motion.div
-                key={testimonial.author}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-                viewport={{ once: true }}
-                className="card p-6 hover:border-primary/20"
-              >
-                <Quote className="w-8 h-8 text-primary/30 mb-4" />
-                <p className="text-muted-foreground mb-6 leading-relaxed">
-                  &ldquo;{testimonial.quote}&rdquo;
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-[10px] flex items-center justify-center text-sm font-semibold text-primary">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <div className="font-medium">{testimonial.author}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 border-t border-border/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-              Simple, transparent pricing
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              10x more generous than competitors. All features included at every
-              tier.
-            </p>
+              <Github className="h-5 w-5" />
+            </a>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {pricingTiers.map((tier, index) => (
-              <motion.div
-                key={tier.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className={`card p-6 flex flex-col ${
-                  tier.highlighted
-                    ? 'border-primary ring-1 ring-primary/50 glow-sm'
-                    : ''
-                }`}
-              >
-                {tier.highlighted && (
-                  <div className="text-xs font-semibold text-primary mb-2 tracking-wide">
-                    Most popular
-                  </div>
-                )}
-                <h3 className="text-xl font-bold">{tier.name}</h3>
-                <div className="mt-4 mb-6">
-                  <span className="text-4xl font-bold tracking-tight font-mono">{tier.price}</span>
-                  <span className="text-muted-foreground">{tier.period}</span>
-                </div>
-                <div className="text-sm font-semibold text-primary mb-6">
-                  {tier.minutes}
-                </div>
-                <ul className="space-y-3 mb-6 flex-1">
-                  {tier.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex items-center gap-2 text-sm text-muted-foreground"
-                    >
-                      <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/login"
-                  className={`block text-center py-2.5 rounded-lg font-semibold transition-all duration-200 ${
-                    tier.highlighted
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
-                      : 'bg-secondary hover:bg-secondary/80'
-                  }`}
-                >
-                  {tier.cta}
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-
-          <p className="text-center text-muted-foreground text-sm mt-8">
-            Speaker diarization available on all tiers for 2x minute usage.
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} Verbatim.
           </p>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative py-24 px-4 overflow-hidden">
-        {/* Atmospheric background */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-primary/[0.04] blur-[120px]" />
-        </div>
-
-        <div className="relative max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-            Ready to get started?
-          </h2>
-          <p className="text-muted-foreground text-lg mb-8">
-            Start transcribing with 500 free minutes. No credit card required.
-          </p>
-          <Link
-            href="/login"
-            className="btn-primary inline-flex items-center gap-2 text-lg px-8 py-3.5 rounded-xl"
-          >
-            Create free account
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-12 px-4 border-t border-border/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm">
-                <Mic className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold tracking-tight">Verbatim</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              <Link href="/docs" className="hover:text-foreground transition-colors">
-                Documentation
-              </Link>
-              <Link href="/pricing" className="hover:text-foreground transition-colors">
-                Pricing
-              </Link>
-              <Link href="/blog" className="hover:text-foreground transition-colors">
-                Blog
-              </Link>
-              <Link href="/privacy" className="hover:text-foreground transition-colors">
-                Privacy
-              </Link>
-              <Link href="/terms" className="hover:text-foreground transition-colors">
-                Terms
-              </Link>
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors"
-              >
-                <Github className="w-5 h-5" />
-              </a>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Verbatim. All rights reserved.
-            </p>
-          </div>
         </div>
       </footer>
     </div>

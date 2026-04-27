@@ -51,7 +51,7 @@ test.describe('Dev Magic Link Flow', () => {
     await page.waitForURL('/app', { timeout: 10000 });
 
     // Verify we're on the app page
-    await expect(page.getByRole('heading', { name: 'Transcribe Audio' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Convert audio into a reviewable transcript.' })).toBeVisible();
 
     // Verify user info is shown
     await expect(page.getByText('e2e-test@example.com')).toBeVisible();

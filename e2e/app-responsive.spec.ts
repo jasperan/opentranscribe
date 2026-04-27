@@ -78,7 +78,7 @@ test.describe('App - Mobile Responsive', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/app');
 
-    const heading = page.getByRole('heading', { name: 'Transcribe Audio' });
+    const heading = page.getByRole('heading', { name: 'Convert audio into a reviewable transcript.' });
     await expect(heading).toBeVisible();
 
     // Tablet
@@ -167,7 +167,7 @@ test.describe('App Pages - Detailed Content', () => {
   test('transcribe page shows diarization toggle', async ({ page }) => {
     await page.goto('/app');
 
-    await expect(page.getByRole('heading', { name: 'Speaker Diarization' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Speaker diarization' })).toBeVisible();
     await expect(page.getByText(/uses 2x minutes/)).toBeVisible();
   });
 

@@ -146,7 +146,13 @@ test.describe('Keyboard Navigation', () => {
   test('landing page is keyboard navigable', async ({ page }) => {
     await page.goto('/');
 
-    // Tab through navigation
+    // Tab through skip link and primary navigation
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('navigation').getByRole('link', { name: 'Verbatim' })).toBeFocused();
+
     await page.keyboard.press('Tab');
     await expect(page.getByRole('navigation').getByRole('link', { name: 'Features' })).toBeFocused();
 
@@ -201,7 +207,7 @@ test.describe('Session Persistence', () => {
 
     // Return to main app
     await page.goto('/app');
-    await expect(page.getByRole('heading', { name: 'Transcribe Audio' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Convert audio into a reviewable transcript.' })).toBeVisible();
   });
 });
 

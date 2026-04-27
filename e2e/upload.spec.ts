@@ -80,8 +80,8 @@ test.describe('Speaker Diarization Toggle', () => {
   });
 
   test('diarization section is visible', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Speaker Diarization' })).toBeVisible();
-    await expect(page.getByText('Identify who said what')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Speaker diarization' })).toBeVisible();
+    await expect(page.getByText('Identify speakers in interviews and meetings')).toBeVisible();
   });
 
   test('diarization shows 2x minutes warning', async ({ page }) => {
@@ -90,7 +90,7 @@ test.describe('Speaker Diarization Toggle', () => {
 
   test('diarization toggle is clickable', async ({ page }) => {
     // Find the toggle button (sibling of the heading)
-    const toggleSection = page.locator('div').filter({ hasText: 'Speaker Diarization' }).first();
+    const toggleSection = page.locator('div').filter({ hasText: 'Speaker diarization' }).first();
     const toggleButton = toggleSection.locator('button').last();
 
     await expect(toggleButton).toBeVisible();
@@ -133,11 +133,11 @@ test.describe('Transcribe Page Layout', () => {
   });
 
   test('has correct page title', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Transcribe Audio' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Convert audio into a reviewable transcript.' })).toBeVisible();
   });
 
   test('has page description', async ({ page }) => {
-    await expect(page.getByText('Upload an audio file to get a high-accuracy transcription')).toBeVisible();
+    await expect(page.getByText('Upload a file or record live audio')).toBeVisible();
   });
 
   test('sidebar navigation is visible', async ({ page }) => {

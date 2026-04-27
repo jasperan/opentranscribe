@@ -403,7 +403,7 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
                         onClick={() => setRecordingMode(mode)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                           recordingMode === mode
-                            ? 'bg-primary text-white'
+                            ? 'bg-primary text-primary-foreground'
                             : 'bg-secondary hover:bg-accent'
                         }`}
                       >
@@ -427,7 +427,7 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
                         onClick={() => setOutputMode(mode)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                           outputMode === mode
-                            ? 'bg-primary text-white'
+                            ? 'bg-primary text-primary-foreground'
                             : 'bg-secondary hover:bg-accent'
                         }`}
                       >
@@ -490,7 +490,7 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={`p-3 rounded-xl transition-colors ${
-              showSettings ? 'bg-primary text-white' : 'bg-secondary hover:bg-accent'
+              showSettings ? 'bg-primary text-primary-foreground' : 'bg-secondary hover:bg-accent'
             }`}
             title="Settings"
           >
@@ -510,9 +510,9 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
             className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-colors ${
               isRecording
                 ? isPushToTalkActive || recordingMode !== 'push_to_talk'
-                  ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-orange-500 hover:bg-orange-600'
-                : 'bg-primary hover:bg-primary/90'
+                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  : 'bg-orange-500 text-white hover:bg-orange-600'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}
           >
             {/* Pulsing ring when speaking */}
@@ -526,12 +526,12 @@ export default function LiveTranscription({ onTranscriptionComplete, onSave }: L
 
             {isRecording ? (
               recordingMode === 'push_to_talk' && !isPushToTalkActive ? (
-                <MicOff className="w-8 h-8 text-white" />
+                <MicOff className="w-8 h-8" />
               ) : (
-                <Square className="w-8 h-8 text-white" />
+                <Square className="w-8 h-8" />
               )
             ) : (
-              <Mic className="w-8 h-8 text-white" />
+              <Mic className="w-8 h-8" />
             )}
           </motion.button>
 

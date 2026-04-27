@@ -34,17 +34,17 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Enhanced speaker colors with backgrounds
+// Keep diarization labels distinct enough for quick transcript scanning.
 const speakerStyles: Record<string, { text: string; bg: string; border: string }> = {
-  'Speaker 1': { text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-  'Speaker 2': { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
-  'Speaker 3': { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
-  'Speaker 4': { text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
-  'Speaker 5': { text: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/30' },
+  'Speaker 1': { text: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/25' },
+  'Speaker 2': { text: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
+  'Speaker 3': { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  'Speaker 4': { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+  'Speaker 5': { text: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
   'Speaker 6': { text: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30' },
 };
 
-const defaultStyle = { text: 'text-gray-400', bg: 'bg-gray-500/10', border: 'border-gray-500/30' };
+const defaultStyle = { text: 'text-muted-foreground', bg: 'bg-muted', border: 'border-border' };
 
 function getSpeakerStyle(speaker: string) {
   return speakerStyles[speaker] || defaultStyle;
@@ -60,9 +60,9 @@ export default function TranscriptionView({
   const [copied, setCopied] = useState(false);
 
   const tabs = [
-    { id: 'transcript' as const, label: 'Transcript', icon: FileText },
-    { id: 'summary' as const, label: 'Summary', icon: Sparkles },
-    { id: 'translation' as const, label: 'Translation', icon: Languages },
+    { id: 'transcript' as const, label: 'Transcript', icon: FileText, disabled: false },
+    { id: 'summary' as const, label: 'Summary', icon: Sparkles, disabled: true },
+    { id: 'translation' as const, label: 'Translation', icon: Languages, disabled: true },
   ];
 
   // Group consecutive segments by speaker for better visual grouping
@@ -93,11 +93,17 @@ export default function TranscriptionView({
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  if (!tab.disabled) setActiveTab(tab.id);
+                }}
+                disabled={tab.disabled}
+                aria-disabled={tab.disabled}
                 className={`relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
                   isActive
-                    ? 'text-white'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'text-primary-foreground'
+                    : tab.disabled
+                      ? 'cursor-not-allowed text-muted-foreground/55'
+                      : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {isActive && (
@@ -110,6 +116,11 @@ export default function TranscriptionView({
                 <span className="relative flex items-center gap-2">
                   <Icon className="w-4 h-4" />
                   {tab.label}
+                  {tab.disabled && (
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Soon
+                    </span>
+                  )}
                 </span>
               </button>
             );
@@ -181,7 +192,7 @@ export default function TranscriptionView({
 
                         {/* Text */}
                         <p className={`text-sm flex-1 leading-relaxed ${
-                          showSpeakers && segment.speaker ? style.text.replace('text-', 'text-').replace('-400', '-100') : ''
+                          showSpeakers && segment.speaker ? 'text-foreground' : ''
                         }`}>
                           {segment.text}
                         </p>
