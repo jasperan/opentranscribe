@@ -1,0 +1,35 @@
+[project]
+name = "opentranscribe"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.12",
+    "faster-whisper>=1.0.0",
+    "openai-whisper>=20250625",
+    "vosk>=0.3.45",
+    "pywhispercpp>=1.2.0",
+    "transformers>=4.40.0",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "nvidia-cublas-cu12",
+    "nvidia-cudnn-cu12",
+    "rich>=13.0.0",
+    "questionary>=2.0.0",
+    "pydub>=0.25.0",
+    "soundfile>=0.12.0"
+]
+
+[dependency-groups]
+dev = []
+
+[tool.uv]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
