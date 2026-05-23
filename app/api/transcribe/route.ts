@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { canTranscribe, addMinutesUsed } from '@/lib/db/users';
+import { canTranscribe } from '@/lib/db/users';
 import {
   createTranscription,
-  completeTranscription,
+  finalizeTranscription,
   updateTranscriptionStatus,
 } from '@/lib/db/transcriptions';
 import { MAX_UPLOAD_SIZE_BYTES } from '@/lib/constants';
@@ -95,11 +95,8 @@ export async function POST(request: NextRequest) {
       const actualMinutes = Math.ceil(audioDuration / 60);
       const finalMinutesCharged = diarization ? actualMinutes * 2 : actualMinutes;
 
-      // Deduct minutes from user's balance
-      addMinutesUsed(user.id, finalMinutesCharged);
-
-      // Save completed transcription
-      completeTranscription(transcription.id, {
+      // Save completion and charge actual minutes in one database transaction.
+      finalizeTranscription(user.id, transcription.id, {
         text: result.text,
         segments: result.segments || [],
         model: result.model,

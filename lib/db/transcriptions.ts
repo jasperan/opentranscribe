@@ -29,6 +29,16 @@ export interface TranscriptionSegment {
   speaker?: string;
 }
 
+export interface CompleteTranscriptionResult {
+  text: string;
+  segments: TranscriptionSegment[];
+  model: string;
+  language: string;
+  durationSeconds: number;
+  minutesCharged: number;
+  hasDiarization: boolean;
+}
+
 export function createTranscription(
   userId: string,
   filename: string,
@@ -116,15 +126,7 @@ export function updateTranscriptionStatus(
 
 export function completeTranscription(
   id: string,
-  result: {
-    text: string;
-    segments: TranscriptionSegment[];
-    model: string;
-    language: string;
-    durationSeconds: number;
-    minutesCharged: number;
-    hasDiarization: boolean;
-  }
+  result: CompleteTranscriptionResult
 ): void {
   const db = getDb();
 
@@ -149,6 +151,70 @@ export function completeTranscription(
     result.hasDiarization ? 1 : 0,
     id
   );
+}
+
+export function finalizeTranscription(
+  userId: string,
+  id: string,
+  result: CompleteTranscriptionResult
+): void {
+  const db = getDb();
+
+  const finalize = db.transaction(() => {
+    const user = db
+      .prepare('SELECT minutes_used, minutes_limit FROM users WHERE id = ?')
+      .get(userId) as { minutes_used: number; minutes_limit: number } | undefined;
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.minutes_limit !== -1) {
+      const remaining = user.minutes_limit - user.minutes_used;
+      if (remaining < result.minutesCharged) {
+        throw new Error(
+          `Insufficient minutes. ${remaining} remaining, ${result.minutesCharged} required.`
+        );
+      }
+    }
+
+    const transcription = db
+      .prepare('SELECT user_id FROM transcriptions WHERE id = ?')
+      .get(id) as { user_id: string } | undefined;
+
+    if (!transcription || transcription.user_id !== userId) {
+      throw new Error('Transcription not found');
+    }
+
+    db.prepare(
+      'UPDATE users SET minutes_used = minutes_used + ? WHERE id = ?'
+    ).run(result.minutesCharged, userId);
+
+    db.prepare(
+      `UPDATE transcriptions
+       SET status = 'completed',
+           result_text = ?,
+           result_segments = ?,
+           model_used = ?,
+           language = ?,
+           duration_seconds = ?,
+           minutes_charged = ?,
+           has_diarization = ?,
+           error_message = NULL
+       WHERE id = ?`
+    ).run(
+      result.text,
+      JSON.stringify(result.segments),
+      result.model,
+      result.language,
+      result.durationSeconds,
+      result.minutesCharged,
+      result.hasDiarization ? 1 : 0,
+      id
+    );
+  });
+
+  finalize();
 }
 
 export function deleteTranscription(id: string, userId: string): boolean {
