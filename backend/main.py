@@ -3,12 +3,10 @@
 This service runs on localhost:8000 and is only accessible from the Next.js frontend.
 It is NOT exposed externally - all public access goes through Next.js API routes.
 """
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-import base64
 import asyncio
 import os
-import uuid
 import time
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
@@ -24,6 +22,7 @@ from utils.upload import (
 from streaming import VoskStreamingTranscriber, WhisperStreamingTranscriber
 from streaming.vosk_streaming import StreamingConfig, RecordingMode, OutputMode
 from streaming.whisper_streaming import StreamingConfig as WhisperConfig, StreamingMode
+from streaming.websocket_endpoint import SessionRegistry, WebSocketStreamingEndpoint
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -73,32 +72,83 @@ app.add_middleware(
 SESSION_TIMEOUT_SECONDS = 1800  # 30 minutes
 
 # Store active streaming sessions with timestamps
-streaming_sessions: dict[str, tuple] = {}  # session_id -> (transcriber, last_active)
-live_sessions: dict[str, tuple] = {}
+streaming_sessions = SessionRegistry(SESSION_TIMEOUT_SECONDS, logger)
+live_sessions = SessionRegistry(SESSION_TIMEOUT_SECONDS, logger)
 
 
-def _register_session(sessions: dict, session_id: str, transcriber) -> None:
-    sessions[session_id] = (transcriber, time.time())
+def _create_vosk_transcriber(data: dict) -> VoskStreamingTranscriber:
+    mode_map = {
+        "push_to_talk": RecordingMode.PUSH_TO_TALK,
+        "toggle": RecordingMode.TOGGLE,
+        "vad": RecordingMode.VAD,
+        "toggle_vad": RecordingMode.TOGGLE_VAD,
+    }
+    output_map = {
+        "display": OutputMode.DISPLAY,
+        "auto_save": OutputMode.AUTO_SAVE,
+        "clipboard": OutputMode.CLIPBOARD,
+    }
+    mode_str = data.get("mode", "toggle")
+    config = StreamingConfig(
+        language=data.get("language", "en"),
+        recording_mode=mode_map.get(mode_str, RecordingMode.TOGGLE),
+        output_mode=output_map.get(data.get("output_mode", "display"), OutputMode.DISPLAY),
+        vad_enabled=data.get("vad_enabled", False) or mode_str in ("vad", "toggle_vad"),
+        silence_timeout=data.get("silence_timeout", 1.5),
+    )
+    return VoskStreamingTranscriber(config)
 
 
-def _touch_session(sessions: dict, session_id: str) -> None:
-    if session_id in sessions:
-        transcriber, _ = sessions[session_id]
-        sessions[session_id] = (transcriber, time.time())
+def _update_vosk_config(transcriber: VoskStreamingTranscriber, data: dict) -> None:
+    if "vad_enabled" in data:
+        transcriber.config.vad_enabled = data["vad_enabled"]
+    if "silence_timeout" in data:
+        transcriber.config.silence_timeout = data["silence_timeout"]
 
 
-def _cleanup_stale_sessions(sessions: dict) -> None:
-    """Remove sessions that haven't been active for SESSION_TIMEOUT_SECONDS."""
-    now = time.time()
-    stale = [sid for sid, (t, ts) in sessions.items() if now - ts > SESSION_TIMEOUT_SECONDS]
-    for sid in stale:
-        transcriber, _ = sessions.pop(sid, (None, None))
-        if transcriber is not None and hasattr(transcriber, 'is_recording') and transcriber.is_recording:
-            try:
-                transcriber.stop_session()
-            except Exception:
-                pass
-        logger.info(f"Cleaned up stale session: {sid}")
+def _create_whisper_transcriber(data: dict) -> WhisperStreamingTranscriber:
+    mode_map = {
+        "continuous": StreamingMode.CONTINUOUS,
+        "vad": StreamingMode.VAD,
+        "push_to_talk": StreamingMode.PUSH_TO_TALK,
+    }
+    language = data.get("language")
+    config = WhisperConfig(
+        language=language if language else None,
+        model_size=data.get("model", "base"),
+        mode=mode_map.get(data.get("mode", "vad"), StreamingMode.VAD),
+        vad_threshold=data.get("vad_threshold", 0.5),
+        silence_duration=data.get("silence_duration", 1.0),
+    )
+    return WhisperStreamingTranscriber(config)
+
+
+def _update_whisper_config(transcriber: WhisperStreamingTranscriber, data: dict) -> None:
+    if "vad_threshold" in data:
+        transcriber.config.vad_threshold = data["vad_threshold"]
+    if "silence_duration" in data:
+        transcriber.config.silence_duration = data["silence_duration"]
+
+
+streaming_endpoint = WebSocketStreamingEndpoint(
+    sessions=streaming_sessions,
+    transcriber_factory=_create_vosk_transcriber,
+    config_updater=_update_vosk_config,
+    unavailable_message="Vosk is not installed. Run: pip install vosk",
+    logger=logger,
+    log_label="WebSocket",
+)
+
+live_endpoint = WebSocketStreamingEndpoint(
+    sessions=live_sessions,
+    transcriber_factory=_create_whisper_transcriber,
+    config_updater=_update_whisper_config,
+    unavailable_message="faster-whisper is not installed. Run: pip install faster-whisper",
+    logger=logger,
+    reject_empty_audio=True,
+    finalizer=lambda transcriber: transcriber.force_finalize(),
+    log_label="Live WebSocket",
+)
 
 
 # ============================================================================
@@ -120,8 +170,8 @@ async def root():
 async def health():
     """Health check endpoint."""
     # Opportunistically clean up stale sessions
-    _cleanup_stale_sessions(streaming_sessions)
-    _cleanup_stale_sessions(live_sessions)
+    streaming_sessions.cleanup_stale()
+    live_sessions.cleanup_stale()
     return {"status": "healthy", "service": "verbatim-transcription"}
 
 
@@ -368,116 +418,7 @@ async def compare_models(
 @app.websocket("/ws/transcribe/stream")
 async def websocket_stream(websocket: WebSocket):
     """WebSocket endpoint for real-time streaming transcription (Vosk)."""
-    await websocket.accept()
-    session_id = str(uuid.uuid4())
-    transcriber: Optional[VoskStreamingTranscriber] = None
-
-    logger.info(f"WebSocket connection opened: {session_id}")
-
-    try:
-        while True:
-            data = await websocket.receive_json()
-            msg_type = data.get("type")
-
-            if msg_type == "start":
-                language = data.get("language", "en")
-                mode_str = data.get("mode", "toggle")
-                output_mode_str = data.get("output_mode", "display")
-                vad_enabled = data.get("vad_enabled", False)
-                silence_timeout = data.get("silence_timeout", 1.5)
-
-                mode_map = {
-                    "push_to_talk": RecordingMode.PUSH_TO_TALK,
-                    "toggle": RecordingMode.TOGGLE,
-                    "vad": RecordingMode.VAD,
-                    "toggle_vad": RecordingMode.TOGGLE_VAD,
-                }
-                output_map = {
-                    "display": OutputMode.DISPLAY,
-                    "auto_save": OutputMode.AUTO_SAVE,
-                    "clipboard": OutputMode.CLIPBOARD,
-                }
-
-                config = StreamingConfig(
-                    language=language,
-                    recording_mode=mode_map.get(mode_str, RecordingMode.TOGGLE),
-                    output_mode=output_map.get(output_mode_str, OutputMode.DISPLAY),
-                    vad_enabled=vad_enabled or mode_str in ("vad", "toggle_vad"),
-                    silence_timeout=silence_timeout,
-                )
-
-                transcriber = VoskStreamingTranscriber(config)
-
-                if not transcriber.is_available():
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "Vosk is not installed. Run: pip install vosk"
-                    })
-                    continue
-
-                result = transcriber.start_session()
-                _register_session(streaming_sessions, session_id, transcriber)
-                await websocket.send_json(result.to_dict())
-
-            elif msg_type == "audio":
-                if transcriber is None or not transcriber.is_recording:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "No active session. Send 'start' first."
-                    })
-                    continue
-
-                _touch_session(streaming_sessions, session_id)
-
-                try:
-                    audio_data = base64.b64decode(data.get("data", ""))
-                except Exception as e:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": f"Invalid audio data: {str(e)}"
-                    })
-                    continue
-
-                results = transcriber.process_chunk(audio_data)
-                for result in results:
-                    await websocket.send_json(result.to_dict())
-
-            elif msg_type == "config":
-                if transcriber is not None:
-                    if "vad_enabled" in data:
-                        transcriber.config.vad_enabled = data["vad_enabled"]
-                    if "silence_timeout" in data:
-                        transcriber.config.silence_timeout = data["silence_timeout"]
-                    await websocket.send_json({"type": "config_updated"})
-
-            elif msg_type == "stop":
-                if transcriber is not None and transcriber.is_recording:
-                    result = transcriber.stop_session()
-                    await websocket.send_json(result.to_dict())
-
-                streaming_sessions.pop(session_id, None)
-                transcriber = None
-
-            elif msg_type == "ping":
-                _touch_session(streaming_sessions, session_id)
-                await websocket.send_json({"type": "pong"})
-
-    except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected: {session_id}")
-    except Exception as e:
-        logger.exception(f"WebSocket error: {e}")
-        try:
-            await websocket.send_json({"type": "error", "message": str(e)})
-        except Exception:
-            pass
-    finally:
-        if transcriber is not None and transcriber.is_recording:
-            try:
-                transcriber.stop_session()
-            except Exception:
-                pass
-        streaming_sessions.pop(session_id, None)
-        logger.info(f"WebSocket session cleaned up: {session_id}")
+    await streaming_endpoint.handle(websocket)
 
 
 @app.get("/streaming/status")
@@ -489,7 +430,7 @@ async def streaming_status():
     except Exception:
         vosk_available = False
 
-    _cleanup_stale_sessions(streaming_sessions)
+    streaming_sessions.cleanup_stale()
 
     return {
         "available": vosk_available,
@@ -508,119 +449,7 @@ async def streaming_status():
 @app.websocket("/ws/live/stream")
 async def websocket_live_stream(websocket: WebSocket):
     """WebSocket endpoint for real-time streaming transcription using faster-whisper."""
-    await websocket.accept()
-    session_id = str(uuid.uuid4())
-    transcriber: Optional[WhisperStreamingTranscriber] = None
-
-    logger.info(f"Live WebSocket connection opened: {session_id}")
-
-    try:
-        while True:
-            data = await websocket.receive_json()
-            msg_type = data.get("type")
-
-            if msg_type == "start":
-                language = data.get("language")
-                model_size = data.get("model", "base")
-                mode_str = data.get("mode", "vad")
-                vad_threshold = data.get("vad_threshold", 0.5)
-                silence_duration = data.get("silence_duration", 1.0)
-
-                mode_map = {
-                    "continuous": StreamingMode.CONTINUOUS,
-                    "vad": StreamingMode.VAD,
-                    "push_to_talk": StreamingMode.PUSH_TO_TALK,
-                }
-
-                config = WhisperConfig(
-                    language=language if language else None,
-                    model_size=model_size,
-                    mode=mode_map.get(mode_str, StreamingMode.VAD),
-                    vad_threshold=vad_threshold,
-                    silence_duration=silence_duration,
-                )
-
-                transcriber = WhisperStreamingTranscriber(config)
-
-                if not transcriber.is_available():
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "faster-whisper is not installed. Run: pip install faster-whisper"
-                    })
-                    continue
-
-                result = transcriber.start_session()
-                _register_session(live_sessions, session_id, transcriber)
-                await websocket.send_json(result.to_dict())
-
-            elif msg_type == "audio":
-                if transcriber is None or not transcriber.is_recording:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "No active session. Send 'start' first."
-                    })
-                    continue
-
-                _touch_session(live_sessions, session_id)
-
-                try:
-                    audio_data = base64.b64decode(data.get("data", ""))
-                    if len(audio_data) == 0:
-                        continue
-                except Exception as e:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": f"Invalid audio data: {str(e)}"
-                    })
-                    continue
-
-                results = transcriber.process_chunk(audio_data)
-                for result in results:
-                    await websocket.send_json(result.to_dict())
-
-            elif msg_type == "config":
-                # m3: Unified config update (same as Vosk endpoint)
-                if transcriber is not None:
-                    if "vad_threshold" in data:
-                        transcriber.config.vad_threshold = data["vad_threshold"]
-                    if "silence_duration" in data:
-                        transcriber.config.silence_duration = data["silence_duration"]
-                    await websocket.send_json({"type": "config_updated"})
-
-            elif msg_type == "finalize":
-                if transcriber is not None and transcriber.is_recording:
-                    result = transcriber.force_finalize()
-                    if result:
-                        await websocket.send_json(result.to_dict())
-
-            elif msg_type == "stop":
-                if transcriber is not None and transcriber.is_recording:
-                    result = transcriber.stop_session()
-                    await websocket.send_json(result.to_dict())
-
-                live_sessions.pop(session_id, None)
-                transcriber = None
-
-            elif msg_type == "ping":
-                _touch_session(live_sessions, session_id)
-                await websocket.send_json({"type": "pong"})
-
-    except WebSocketDisconnect:
-        logger.info(f"Live WebSocket disconnected: {session_id}")
-    except Exception as e:
-        logger.exception(f"Live WebSocket error: {e}")
-        try:
-            await websocket.send_json({"type": "error", "message": str(e)})
-        except Exception:
-            pass
-    finally:
-        if transcriber is not None and transcriber.is_recording:
-            try:
-                transcriber.stop_session()
-            except Exception:
-                pass
-        live_sessions.pop(session_id, None)
-        logger.info(f"Live WebSocket session cleaned up: {session_id}")
+    await live_endpoint.handle(websocket)
 
 
 @app.get("/live/status")
@@ -639,7 +468,7 @@ async def live_status():
     except Exception:
         vad_available = False
 
-    _cleanup_stale_sessions(live_sessions)
+    live_sessions.cleanup_stale()
 
     return {
         "available": whisper_available,
