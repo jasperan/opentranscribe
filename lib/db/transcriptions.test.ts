@@ -38,6 +38,7 @@ test('finalizeTranscription charges usage and completes in one transaction', () 
     durationSeconds: 73,
     minutesCharged: 2,
     hasDiarization: false,
+    audioFingerprint: 'sha256-backend-fingerprint',
   });
 
   const updatedUser = getUserById(user.id);
@@ -47,6 +48,31 @@ test('finalizeTranscription charges usage and completes in one transaction', () 
   assert.equal(completed?.status, 'completed');
   assert.equal(completed?.minutes_charged, 2);
   assert.equal(completed?.result_text, 'Ship the recorder.');
+  assert.equal(completed?.audio_fingerprint, 'sha256-backend-fingerprint');
+});
+
+test('finalizeTranscription preserves an existing fingerprint when completion omits one', () => {
+  const user = createUser('fingerprint-preserve@example.com');
+  const transcription = createTranscription(
+    user.id,
+    'meeting.mp3',
+    'precomputed-upload-fingerprint'
+  );
+
+  finalizeTranscription(user.id, transcription.id, {
+    text: 'Keep the original fingerprint.',
+    segments: [],
+    model: 'faster-whisper',
+    language: 'en',
+    durationSeconds: 30,
+    minutesCharged: 1,
+    hasDiarization: false,
+  });
+
+  const completed = getTranscriptionById(transcription.id);
+
+  assert.equal(completed?.status, 'completed');
+  assert.equal(completed?.audio_fingerprint, 'precomputed-upload-fingerprint');
 });
 
 test('finalizeTranscription rolls back when actual minutes exceed the remaining balance', () => {

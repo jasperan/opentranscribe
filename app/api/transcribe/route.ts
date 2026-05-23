@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
         durationSeconds: Math.round(audioDuration),
         minutesCharged: finalMinutesCharged,
         hasDiarization: diarization,
+        audioFingerprint: result.fingerprint ?? null,
       });
 
       return NextResponse.json({
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
         language: result.language,
         duration: audioDuration,
         minutesCharged: finalMinutesCharged,
+        fingerprint: result.fingerprint ?? null,
       });
     } catch (err) {
       // Mark transcription as failed

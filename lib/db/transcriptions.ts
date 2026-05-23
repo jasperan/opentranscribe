@@ -37,6 +37,7 @@ export interface CompleteTranscriptionResult {
   durationSeconds: number;
   minutesCharged: number;
   hasDiarization: boolean;
+  audioFingerprint?: string | null;
 }
 
 export function createTranscription(
@@ -50,7 +51,7 @@ export function createTranscription(
   db.prepare(
     `INSERT INTO transcriptions (id, user_id, filename, audio_fingerprint, status)
      VALUES (?, ?, ?, ?, 'pending')`
-  ).run(id, userId, filename, fingerprint || null);
+  ).run(id, userId, filename, normalizeFingerprint(fingerprint));
 
   return getTranscriptionById(id)!;
 }
@@ -62,6 +63,13 @@ interface TranscriptionRow extends Omit<Transcription, 'has_diarization'> {
 
 function rowToTranscription(row: TranscriptionRow): Transcription {
   return { ...row, has_diarization: Boolean(row.has_diarization) };
+}
+
+function normalizeFingerprint(
+  fingerprint: string | null | undefined
+): string | null {
+  const trimmed = fingerprint?.trim();
+  return trimmed ? trimmed : null;
 }
 
 export function getTranscriptionById(id: string): Transcription | null {
@@ -139,7 +147,8 @@ export function completeTranscription(
          language = ?,
          duration_seconds = ?,
          minutes_charged = ?,
-         has_diarization = ?
+         has_diarization = ?,
+         audio_fingerprint = COALESCE(?, audio_fingerprint)
      WHERE id = ?`
   ).run(
     result.text,
@@ -149,6 +158,7 @@ export function completeTranscription(
     result.durationSeconds,
     result.minutesCharged,
     result.hasDiarization ? 1 : 0,
+    normalizeFingerprint(result.audioFingerprint),
     id
   );
 }
@@ -200,6 +210,7 @@ export function finalizeTranscription(
            duration_seconds = ?,
            minutes_charged = ?,
            has_diarization = ?,
+           audio_fingerprint = COALESCE(?, audio_fingerprint),
            error_message = NULL
        WHERE id = ?`
     ).run(
@@ -210,6 +221,7 @@ export function finalizeTranscription(
       result.durationSeconds,
       result.minutesCharged,
       result.hasDiarization ? 1 : 0,
+      normalizeFingerprint(result.audioFingerprint),
       id
     );
   });
