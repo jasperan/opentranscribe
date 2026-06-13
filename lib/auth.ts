@@ -128,19 +128,6 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 /**
- * Require authentication - throws if not authenticated
- */
-export async function requireAuth(): Promise<User> {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    throw new Error('Authentication required');
-  }
-
-  return user;
-}
-
-/**
  * Log out the current user
  */
 export async function logout(): Promise<void> {

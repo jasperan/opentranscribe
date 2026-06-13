@@ -1,22 +1,19 @@
 import { NextResponse } from 'next/server';
-import { requireAuth, logout } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
+import { logout } from '@/lib/auth';
 import { deleteUser } from '@/lib/db/users';
 
 export async function DELETE() {
   try {
-    const user = await requireAuth();
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     await logout();
     deleteUser(user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
     console.error('Delete user error:', error);
     return NextResponse.json(
       { error: 'Failed to delete account' },

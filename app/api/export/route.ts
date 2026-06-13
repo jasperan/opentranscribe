@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
 import {
   getTranscriptionById,
   type TranscriptionSegment,
@@ -75,7 +75,9 @@ function formatMarkdown(
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth();
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     const body = await request.json();
     const { transcriptionId, format } = body;
@@ -194,10 +196,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Export error:', error);
-
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     return NextResponse.json(
       { error: 'Export failed' },

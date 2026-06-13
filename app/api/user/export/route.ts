@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
 import { getUserById } from '@/lib/db/users';
 import { getUserTranscriptions, getTranscriptionStats } from '@/lib/db/transcriptions';
 import { getUserApiKeys } from '@/lib/db/api-keys';
 
 export async function GET() {
   try {
-    const user = await requireAuth();
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     const fullUser = getUserById(user.id);
     const transcriptions = getUserTranscriptions(user.id, 10000, 0);
@@ -54,12 +56,6 @@ export async function GET() {
       },
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
     console.error('Export user data error:', error);
     return NextResponse.json(
       { error: 'Failed to export data' },

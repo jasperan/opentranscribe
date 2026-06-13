@@ -352,7 +352,6 @@ class WhisperStreamingTranscriber:
                 self._buffer_duration += len(audio_float32) / self.config.sample_rate
 
                 # Trim buffer if too long
-                max_samples = int(self.config.max_buffer_length * self.config.sample_rate)
                 while self._buffer_duration > self.config.max_buffer_length:
                     if self._audio_buffer:
                         removed = self._audio_buffer.pop(0)

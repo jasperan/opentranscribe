@@ -238,33 +238,6 @@ export function deleteTranscription(id: string, userId: string): boolean {
   return result.changes > 0;
 }
 
-export function findByFingerprint(
-  userId: string,
-  fingerprint: string
-): Transcription | null {
-  const db = getDb();
-  const row = db
-    .prepare(
-      `SELECT * FROM transcriptions
-       WHERE user_id = ? AND audio_fingerprint = ? AND status = 'completed'
-       ORDER BY created_at DESC
-       LIMIT 1`
-    )
-    .get(userId, fingerprint) as TranscriptionRow | undefined;
-
-  if (!row) return null;
-  return rowToTranscription(row);
-}
-
-export function getTranscriptionCount(userId: string): number {
-  const db = getDb();
-  const result = db
-    .prepare('SELECT COUNT(*) as count FROM transcriptions WHERE user_id = ?')
-    .get(userId) as { count: number };
-
-  return result.count;
-}
-
 export function getTranscriptionStats(userId: string): {
   total: number;
   completed: number;

@@ -33,31 +33,42 @@ _server_process = None
 _server_thread = None
 
 
-def setup_cuda_environment():
-    """Set up CUDA library paths for GPU support."""
+def _discover_cuda_lib_paths():
+    """Discover nvidia cuBLAS/cuDNN library directories for GPU support.
+
+    Returns a list of directory paths (possibly empty) without mutating
+    any environment. Returns an empty list when the nvidia packages are
+    not installed.
+    """
     try:
         import nvidia.cublas.lib
         import nvidia.cudnn.lib
-
-        paths = []
-
-        if hasattr(nvidia.cublas.lib, '__file__') and nvidia.cublas.lib.__file__:
-            paths.append(os.path.dirname(nvidia.cublas.lib.__file__))
-        elif hasattr(nvidia.cublas.lib, '__path__'):
-            paths.append(list(nvidia.cublas.lib.__path__)[0])
-
-        if hasattr(nvidia.cudnn.lib, '__file__') and nvidia.cudnn.lib.__file__:
-            paths.append(os.path.dirname(nvidia.cudnn.lib.__file__))
-        elif hasattr(nvidia.cudnn.lib, '__path__'):
-            paths.append(list(nvidia.cudnn.lib.__path__)[0])
-
-        if paths:
-            existing = os.environ.get("LD_LIBRARY_PATH", "")
-            new_path = ":".join(paths)
-            if new_path not in existing:
-                os.environ["LD_LIBRARY_PATH"] = f"{new_path}:{existing}" if existing else new_path
     except ImportError:
-        pass
+        return []
+
+    paths = []
+    for module in (nvidia.cublas.lib, nvidia.cudnn.lib):
+        if getattr(module, '__file__', None):
+            paths.append(os.path.dirname(module.__file__))
+        elif hasattr(module, '__path__'):
+            paths.append(list(module.__path__)[0])
+    return paths
+
+
+def _prepend_cuda_paths(env):
+    """Prepend discovered CUDA lib paths to LD_LIBRARY_PATH in ``env``."""
+    paths = _discover_cuda_lib_paths()
+    if not paths:
+        return
+    existing = env.get("LD_LIBRARY_PATH", "")
+    new_path = ":".join(paths)
+    if new_path not in existing:
+        env["LD_LIBRARY_PATH"] = f"{new_path}:{existing}" if existing else new_path
+
+
+def setup_cuda_environment():
+    """Set up CUDA library paths for GPU support."""
+    _prepend_cuda_paths(os.environ)
 
 
 def start_api_server():
@@ -71,20 +82,7 @@ def start_api_server():
 
     # Set up environment with CUDA support
     env = os.environ.copy()
-    try:
-        import nvidia.cublas.lib
-        import nvidia.cudnn.lib
-        paths = []
-        if hasattr(nvidia.cublas.lib, '__path__'):
-            paths.append(list(nvidia.cublas.lib.__path__)[0])
-        if hasattr(nvidia.cudnn.lib, '__path__'):
-            paths.append(list(nvidia.cudnn.lib.__path__)[0])
-        if paths:
-            existing = env.get("LD_LIBRARY_PATH", "")
-            new_path = ":".join(paths)
-            env["LD_LIBRARY_PATH"] = f"{new_path}:{existing}" if existing else new_path
-    except ImportError:
-        pass
+    _prepend_cuda_paths(env)
 
     try:
         _server_process = subprocess.Popen(
@@ -96,18 +94,36 @@ def start_api_server():
             start_new_session=True
         )
 
-        # Wait a moment for server to start
-        time.sleep(2)
-
-        # Verify server is running
-        if _server_process.poll() is None:
-            return True
-        else:
-            return False
+        # Poll the health endpoint until the server is ready (or it dies)
+        return _wait_for_server_ready(_server_process)
 
     except Exception as e:
         console.print(f"[red]Failed to start server: {e}[/red]")
         return False
+
+
+def _wait_for_server_ready(process, timeout: float = 15.0) -> bool:
+    """Poll GET /health until the server responds or ``timeout`` elapses.
+
+    Returns True once the server is reachable, False if the process exits
+    or the timeout is reached.
+    """
+    import urllib.request
+
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if process.poll() is not None:
+            return False  # Process exited before becoming ready
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=1) as resp:
+                if resp.status == 200:
+                    return True
+        except Exception:
+            pass
+        time.sleep(0.25)
+
+    # Timed out waiting for readiness; report based on whether it's still alive
+    return process.poll() is None
 
 
 def stop_api_server():

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
 import { canTranscribe } from '@/lib/db/users';
 import {
   createTranscription,
@@ -13,7 +13,11 @@ const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
 export async function POST(request: NextRequest) {
   try {
     // Require authentication
-    const user = await requireAuth();
+    const auth = await requireUserOr401();
+    if (!auth.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const user = auth.user;
 
     // Parse form data
     const formData = await request.formData();
@@ -128,10 +132,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Transcription error:', error);
-
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Transcription failed' },

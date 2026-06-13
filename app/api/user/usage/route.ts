@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireUserOr401 } from '@/lib/api/guards';
 import { getUserUsage } from '@/lib/db/users';
 
 export async function GET() {
   try {
-    const user = await requireAuth();
+    const auth = await requireUserOr401();
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
+
     const usage = getUserUsage(user.id);
 
     return NextResponse.json({
       ...usage,
       tier: user.tier,
     });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+  } catch {
     return NextResponse.json(
       { error: 'Failed to get usage' },
       { status: 500 }

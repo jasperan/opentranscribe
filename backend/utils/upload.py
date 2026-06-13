@@ -29,26 +29,22 @@ VALID_LANGUAGES = {
     'ca', 'hr', 'sk', 'sl', 'et', 'lt', 'lv', 'ta', 'te', 'ml',
 }
 
-# Audio magic bytes for validation
-AUDIO_MAGIC_BYTES = {
-    b'\xff\xfb': 'audio/mpeg',
-    b'\xff\xfa': 'audio/mpeg',
-    b'\xff\xf3': 'audio/mpeg',
-    b'\xff\xf2': 'audio/mpeg',
-    b'ID3': 'audio/mpeg',
-    b'RIFF': 'audio/wav',
-    b'fLaC': 'audio/flac',
-    b'OggS': 'audio/ogg',
-    b'\x00\x00\x00': 'audio/mp4',
-}
+# Magic byte prefixes for media validation (only the prefixes are used)
+AUDIO_MAGIC_PREFIXES = (
+    b'\xff\xfb', b'\xff\xfa', b'\xff\xf3', b'\xff\xf2',  # MPEG audio frames
+    b'ID3',   # MP3 with ID3 tag
+    b'RIFF',  # WAV
+    b'fLaC',  # FLAC
+    b'OggS',  # Ogg
+    b'\x00\x00\x00',  # MP4-family container box
+)
 
-VIDEO_MAGIC_BYTES = {
-    b'\x00\x00\x00': 'video/mp4',
-    b'\x1a\x45\xdf\xa3': 'video/webm',
-    b'RIFF': 'video/avi',
-    b'\x00\x00\x01\xb3': 'video/mpeg',
-    b'\x00\x00\x01\xba': 'video/mpeg',
-}
+VIDEO_MAGIC_PREFIXES = (
+    b'\x00\x00\x00',  # MP4-family container box
+    b'\x1a\x45\xdf\xa3',  # WebM/Matroska
+    b'RIFF',  # AVI
+    b'\x00\x00\x01\xb3', b'\x00\x00\x01\xba',  # MPEG program/sequence
+)
 
 AUDIO_EXTENSIONS = {'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.wma', '.opus'}
 VIDEO_EXTENSIONS = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'}
@@ -82,18 +78,16 @@ def validate_media_file(file_path: str, content_type: str) -> tuple[bool, str]:
         with open(file_path, "rb") as f:
             header = f.read(12)
 
-        for magic, _ in AUDIO_MAGIC_BYTES.items():
-            if header.startswith(magic):
-                return True, 'audio'
+        if header.startswith(AUDIO_MAGIC_PREFIXES):
+            return True, 'audio'
 
         if b'ftyp' in header:
             if content_type and content_type.startswith('audio/'):
                 return True, 'audio'
             return True, 'video'
 
-        for magic, _ in VIDEO_MAGIC_BYTES.items():
-            if header.startswith(magic):
-                return True, 'video'
+        if header.startswith(VIDEO_MAGIC_PREFIXES):
+            return True, 'video'
 
         if header[:4] == b'\x1a\x45\xdf\xa3':
             return True, 'video'
