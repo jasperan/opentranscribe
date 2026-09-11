@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "backend:dev": "cd backend && python main.py",
     "backend:start": "cd backend && python -m uvicorn main:app --host 127.0.0.1 --port 8000",
     "db:migrate": "tsx lib/db/migrate.ts",

@@ -165,7 +165,7 @@ export default function TermsPage() {
                   <h2 className="text-lg font-semibold mb-2">Summary</h2>
                   <p className="text-muted-foreground text-sm">
                     By using Verbatim, you agree to these terms. We provide a privacy-focused transcription
-                    service. Your audio is processed securely and deleted after transcription. You're responsible
+                    service. Your audio is processed securely and deleted after transcription. You&apos;re responsible
                     for your account and must use the service legally and respectfully.
                   </p>
                 </div>
@@ -188,7 +188,7 @@ export default function TermsPage() {
               </div>
               <div className="pl-13">
                 <p className="text-muted-foreground leading-relaxed">
-                  By accessing or using Verbatim ("the Service"), you agree to be bound by these Terms of Service.
+                  By accessing or using Verbatim (&quot;the Service&quot;), you agree to be bound by these Terms of Service.
                   If you do not agree to these terms, please do not use the Service.
                 </p>
               </div>
@@ -351,7 +351,7 @@ export default function TermsPage() {
               </div>
               <div className="pl-13">
                 <p className="text-muted-foreground leading-relaxed">
-                  The Service is provided "as is" without warranties of any kind. We are not liable for any
+                  The Service is provided &quot;as is&quot; without warranties of any kind. We are not liable for any
                   indirect, incidental, or consequential damages arising from your use of the Service.
                 </p>
               </div>
