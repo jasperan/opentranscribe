@@ -110,8 +110,8 @@ proxy.on('upgrade', (req, socket, head) => {
   proxyReq.end();
 });
 
-proxy.listen(HTTPS_PORT, '0.0.0.0', () => {
-  console.log(`HTTPS proxy running on https://0.0.0.0:${HTTPS_PORT}`);
+proxy.listen(HTTPS_PORT, '127.0.0.1', () => {
+  console.log(`HTTPS proxy running on https://127.0.0.1:${HTTPS_PORT}`);
   console.log(`  Frontend (HTTP):  http://127.0.0.1:${FRONTEND_PORT}`);
   console.log(`  Backend (HTTP):   http://127.0.0.1:${BACKEND_PORT}`);
   console.log(`  WebSocket /ws/*:  -> backend:${BACKEND_PORT}`);
