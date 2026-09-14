@@ -28,13 +28,14 @@ test.describe('Landing Page', () => {
 
   test('displays hero section with correct content', async ({ page }) => {
     // Privacy badge - use first() since it appears in hero
-    await expect(page.getByText('Private speech-to-text infrastructure').first()).toBeVisible();
+    await expect(page.getByText('YOUR WORDS, IN GOOD HANDS').first()).toBeVisible();
 
     // Main headline - look for heading element
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Transcription that stays inside your stack');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Every voice.');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Worth keeping.');
 
     // Description
-    await expect(page.getByText('Verbatim turns long audio into searchable transcripts')).toBeVisible();
+    await expect(page.getByText(/Turn your audio into words you can search, edit, and share/)).toBeVisible();
 
     // CTA buttons
     await expect(page.getByRole('link', { name: 'Start with 500 minutes' })).toBeVisible();

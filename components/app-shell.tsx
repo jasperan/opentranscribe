@@ -102,7 +102,7 @@ export default function AppShell({ user, children }: AppShellProps) {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background">
+    <div className="studio-workspace min-h-[100dvh] bg-background">
       {/* Mobile sidebar backdrop */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -148,6 +148,7 @@ export default function AppShell({ user, children }: AppShellProps) {
                 <Link
                   key={item.name}
                   href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 min-h-[44px] active:scale-[0.99] ${
                     isActive
                       ? 'bg-primary/10 text-primary ring-1 ring-primary/20'

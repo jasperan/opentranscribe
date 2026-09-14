@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import StudioPreview from '@/components/studio-preview';
 import {
   Mic,
   Shield,
@@ -18,7 +19,6 @@ import {
   Users,
   Clock,
   FileAudio,
-  Radio,
   Server,
   Activity,
   Play,
@@ -53,9 +53,9 @@ const features = [
 ];
 
 const stats = [
-  { label: 'Active workspaces', value: '12,847', icon: Users },
-  { label: 'Minutes processed', value: '4.7M', icon: Clock },
-  { label: 'Audio files indexed', value: '247,319', icon: FileAudio },
+  { label: 'Open-source engines', value: '5', icon: Users },
+  { label: 'Export formats', value: '6', icon: Clock },
+  { label: 'Infrastructure you control', value: 'Local', icon: FileAudio },
 ];
 
 const testimonials = [
@@ -121,12 +121,6 @@ const pricingTiers = [
   },
 ];
 
-const consoleRows = [
-  { label: 'voice-memo-0419.m4a', status: 'Transcribing', value: '72%' },
-  { label: 'founder-interview.wav', status: 'Diarized', value: '8 speakers' },
-  { label: 'product-sync.flac', status: 'Exported', value: 'SRT + DOCX' },
-];
-
 function LogoMark({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
@@ -135,110 +129,6 @@ function LogoMark({ compact = false }: { compact?: boolean }) {
       </div>
       {!compact && <span className="text-xl font-semibold tracking-tight">Verbatim</span>}
     </div>
-  );
-}
-
-function WaveformDecoration() {
-  const bars = Array.from({ length: 64 }, (_, i) => ({
-    height: Math.max(12, 18 + Math.sin(i * 0.32) * 38 + Math.cos(i * 0.71) * 18).toFixed(2),
-    delay: (i * 0.035).toFixed(2),
-    duration: (1.15 + Math.sin(i * 0.45) * 0.35).toFixed(2),
-  }));
-
-  return (
-    <div className="flex h-32 w-full min-w-0 items-end gap-1 overflow-hidden" aria-hidden="true">
-      {bars.map((bar, index) => (
-        <span
-          key={index}
-          className="block min-w-[2px] flex-1 rounded-full bg-primary/45 animate-waveform-bar"
-          style={{
-            height: `${bar.height}px`,
-            animationDelay: `${bar.delay}s`,
-            animationDuration: `${bar.duration}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function HeroConsolePreview() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-      className="relative min-w-0"
-    >
-      <div className="absolute inset-x-10 top-8 h-px bg-primary/30" aria-hidden="true" />
-      <div className="card overflow-hidden rounded-[1.75rem] border-primary/15 bg-card/95">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-            <span className="text-sm font-semibold">Live transcript desk</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Radio className="h-3.5 w-3.5" />
-            24 kHz stream
-          </div>
-        </div>
-
-        <div className="grid min-w-0 gap-0 md:grid-cols-[1.08fr_0.92fr]">
-          <div className="min-w-0 space-y-5 border-b border-border p-5 md:border-b-0 md:border-r">
-            <div className="rounded-2xl border border-border bg-background/70 p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Waveform
-                </span>
-                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                  encrypted
-                </span>
-              </div>
-              <WaveformDecoration />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {stats.map((stat) => (
-                <div key={stat.label} className="rounded-xl border border-border bg-background/70 p-3">
-                  <stat.icon className="mb-2 h-4 w-4 text-primary" />
-                  <div className="font-mono text-lg font-semibold tracking-tight">{stat.value}</div>
-                  <div className="mt-1 text-[11px] leading-tight text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="min-w-0 space-y-3 p-5">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Queue</span>
-              <span>model: faster-whisper</span>
-            </div>
-            {consoleRows.map((row, index) => (
-              <motion.div
-                key={row.label}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.25 + index * 0.08, duration: 0.35 }}
-                className="rounded-xl border border-border bg-background/70 p-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{row.label}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{row.status}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 font-mono text-xs text-primary">
-                    {row.value}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-            <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3 text-sm leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground">00:14</span> We can publish the rough cut after captions are checked.
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
   );
 }
 
@@ -260,7 +150,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background">
+    <div className="studio-landing min-h-[100dvh] bg-background">
       <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-background/82 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" aria-label="Verbatim home">
@@ -292,7 +182,7 @@ export default function LandingPage() {
       </nav>
 
       <main id="main-content">
-        <section className="relative overflow-hidden border-b border-border/60 px-4 pb-16 pt-28 sm:px-6 lg:px-8 lg:pb-24 lg:pt-36">
+        <section className="studio-hero relative overflow-hidden border-b border-border/60 px-4 pb-16 pt-28 sm:px-6 lg:px-8 lg:pb-24 lg:pt-36">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
             <div className="absolute inset-0 noise-bg opacity-[0.018]" />
             <div className="absolute inset-x-0 top-0 h-px bg-primary/25" />
@@ -309,15 +199,15 @@ export default function LandingPage() {
             >
               <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-sm font-medium text-primary">
                 <Shield className="h-4 w-4" />
-                Private speech-to-text infrastructure
+                YOUR WORDS, IN GOOD HANDS
               </div>
 
-              <h1 className="text-4xl font-semibold leading-none tracking-tight text-balance sm:text-5xl md:text-6xl">
-                Transcription that stays inside your stack.
+              <h1 className="studio-title">
+                Every voice.<br /><em>Worth keeping.</em>
               </h1>
 
               <p className="mt-7 max-w-[62ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Verbatim turns long audio into searchable transcripts, captions, and developer-ready exports while keeping sensitive files away from third-party STT APIs.
+                Interviews, passing thoughts, the conversation that changes everything. Turn your audio into words you can search, edit, and share. All on infrastructure you control.
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -341,7 +231,7 @@ export default function LandingPage() {
               </div>
             </motion.div>
 
-            <HeroConsolePreview />
+            <StudioPreview />
           </div>
         </section>
 

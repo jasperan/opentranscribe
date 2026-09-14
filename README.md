@@ -1,5 +1,22 @@
 # OpenTranscribe
 
+## Meet the listening room
+
+![Verbatim's audio studio landing page with a warm dark theme, record artwork, waveform, and transcript preview](docs/screenshots/studio-dark.png)
+
+OpenTranscribe's Verbatim frontend pairs editorial typography with a warm audio-studio palette. The landing preview illustrates the path from recording to transcript; shared light and dark themes extend into the working transcription interface.
+
+<details>
+<summary>Light theme and transcription workspace</summary>
+
+![The listening room in its warm paper light theme](docs/screenshots/studio-light.png)
+
+![The actual transcription workspace with file input, model controls, and workflow guidance](docs/screenshots/studio-workspace.png)
+
+</details>
+
+These captures show the actual Next.js frontend. The landing transcript is explicitly illustrative, and the workspace was captured with a disposable local development account. No private recordings or production account data are shown. To preview the public landing page in development, set `NEXT_PUBLIC_DISABLE_DEV_SHORTCUTS=true`.
+
 <div align="center">
 
 **[View Interactive Presentation](docs/slides/presentation.html)** | Animated overview of the project
