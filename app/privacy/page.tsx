@@ -196,7 +196,7 @@ export default function PrivacyPage() {
                   <h2 className="text-lg font-semibold mb-2">Our Privacy Promise</h2>
                   <p className="text-muted-foreground">
                     Verbatim is built with privacy at its core. Your audio files are processed locally on our servers,
-                    never sent to third-party APIs, and automatically deleted after transcription. We don't sell your data.
+                    never sent to third-party APIs, and automatically deleted after transcription. We don&apos;t sell your data.
                   </p>
                 </div>
               </div>
@@ -438,7 +438,7 @@ export default function PrivacyPage() {
                     <div className="w-10 h-10 bg-pink-500/10 rounded-xl flex items-center justify-center">
                       <Baby className="w-5 h-5 text-pink-500" />
                     </div>
-                    <h2 className="text-2xl font-bold">7. Children's Privacy</h2>
+                    <h2 className="text-2xl font-bold">7. Children&apos;s Privacy</h2>
                   </div>
 
                   <div className="card p-6">

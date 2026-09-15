@@ -334,7 +334,7 @@ export default function DocsPage() {
                 Developer Documentation
               </h1>
               <p className="text-xl text-muted-foreground max-w-2xl">
-                Integrate Verbatim's powerful transcription capabilities into your applications
+                Integrate Verbatim&apos;s powerful transcription capabilities into your applications
                 with our simple REST API.
               </p>
             </motion.section>

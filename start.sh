@@ -17,6 +17,10 @@ FRONTEND_DIR="$SCRIPT_DIR"
 
 # Default ports
 BACKEND_PORT=${BACKEND_PORT:-8000}
+# Bind host for both services. Loopback by default: the backend has no authentication
+# and main.py itself defaults to 127.0.0.1, so publishing it to the LAN is a deliberate
+# choice, not something a start script should do implicitly.
+HOST=${OPENTRANSCRIBE_HOST:-127.0.0.1}
 FRONTEND_PORT=${FRONTEND_PORT:-3000}
 
 # Get external IP
@@ -60,7 +64,7 @@ sleep 1
 # Start backend
 echo -e "${GREEN}Starting backend on port $BACKEND_PORT...${NC}"
 cd "$BACKEND_DIR"
-nohup uvicorn main:app --host 0.0.0.0 --port $BACKEND_PORT > /tmp/opentranscribe-backend.log 2>&1 &
+nohup uvicorn main:app --host "$HOST" --port $BACKEND_PORT > /tmp/opentranscribe-backend.log 2>&1 &
 BACKEND_PID=$!
 sleep 2
 
@@ -76,7 +80,7 @@ fi
 # Start frontend
 echo -e "${GREEN}Starting frontend on port $FRONTEND_PORT...${NC}"
 cd "$FRONTEND_DIR"
-nohup npm run dev -- -p $FRONTEND_PORT -H 0.0.0.0 > /tmp/opentranscribe-frontend.log 2>&1 &
+nohup npm run dev -- -p $FRONTEND_PORT -H "$HOST" > /tmp/opentranscribe-frontend.log 2>&1 &
 FRONTEND_PID=$!
 sleep 5
 

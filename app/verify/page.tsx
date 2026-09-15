@@ -185,7 +185,7 @@ function VerifyContent() {
 
               <div>
                 <h1 className="text-2xl font-bold mb-2">Welcome back!</h1>
-                <p className="text-muted-foreground">You've been signed in successfully</p>
+                <p className="text-muted-foreground">You&apos;ve been signed in successfully</p>
               </div>
 
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
