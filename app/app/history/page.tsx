@@ -170,7 +170,7 @@ export default function HistoryPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Transcription History</h1>
+        <h1 className="mb-2">Transcription history</h1>
         <p className="text-muted-foreground">
           View and manage your past transcriptions.
         </p>
@@ -185,7 +185,7 @@ export default function HistoryPage() {
             className="card p-4"
           >
             <p className="text-sm text-muted-foreground mb-1">Total Transcriptions</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="font-mono text-2xl font-medium tnum">{stats.total}</p>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -194,7 +194,7 @@ export default function HistoryPage() {
             className="card p-4"
           >
             <p className="text-sm text-muted-foreground mb-1">Completed</p>
-            <p className="text-2xl font-bold text-green-500">{stats.completed}</p>
+            <p className="font-mono text-2xl font-medium tnum text-green-600 dark:text-green-400">{stats.completed}</p>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -203,7 +203,7 @@ export default function HistoryPage() {
             className="card p-4"
           >
             <p className="text-sm text-muted-foreground mb-1">Total Audio</p>
-            <p className="text-2xl font-bold">{stats.totalMinutes} min</p>
+            <p className="font-mono text-2xl font-medium tnum">{stats.totalMinutes} min</p>
           </motion.div>
         </div>
       )}

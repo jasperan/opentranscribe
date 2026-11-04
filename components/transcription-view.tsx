@@ -6,7 +6,7 @@ import {
   User,
   Clock,
   FileText,
-  Sparkles,
+  AlignLeft,
   Languages,
   Copy,
   Check
@@ -61,7 +61,7 @@ export default function TranscriptionView({
 
   const tabs = [
     { id: 'transcript' as const, label: 'Transcript', icon: FileText, disabled: false },
-    { id: 'summary' as const, label: 'Summary', icon: Sparkles, disabled: true },
+    { id: 'summary' as const, label: 'Summary', icon: AlignLeft, disabled: true },
     { id: 'translation' as const, label: 'Translation', icon: Languages, disabled: true },
   ];
 
@@ -117,7 +117,7 @@ export default function TranscriptionView({
                   <Icon className="w-4 h-4" />
                   {tab.label}
                   {tab.disabled && (
-                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span className="rounded-sm bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                       Soon
                     </span>
                   )}
@@ -214,8 +214,8 @@ export default function TranscriptionView({
               className="p-6"
             >
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                  <Sparkles className="w-8 h-8 text-primary" />
+                <div className="w-16 h-16 bg-secondary rounded-xl flex items-center justify-center mb-4">
+                  <AlignLeft className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">AI Summary</h3>
                 <p className="text-muted-foreground text-sm max-w-md">
@@ -223,8 +223,7 @@ export default function TranscriptionView({
                   This feature analyzes the content and provides key points.
                 </p>
                 <button className="mt-6 btn-primary flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  Generate Summary
+                  Generate summary
                 </button>
               </div>
             </motion.div>

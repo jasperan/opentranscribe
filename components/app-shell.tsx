@@ -118,7 +118,7 @@ export default function AppShell({ user, children }: AppShellProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card/95 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl transform transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card transform transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } ${sidebarOpen ? 'visible' : 'invisible lg:visible'}`}
       >
@@ -126,7 +126,7 @@ export default function AppShell({ user, children }: AppShellProps) {
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-border/80">
             <Link href="/app" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+              <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
                 <Mic className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="text-lg font-semibold tracking-tight">Verbatim</span>
@@ -265,7 +265,7 @@ export default function AppShell({ user, children }: AppShellProps) {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Header - visible on both mobile and desktop */}
-        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 lg:px-8 bg-background/82 backdrop-blur-xl border-b border-border/80">
+        <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 lg:px-8 bg-background border-b border-border">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}

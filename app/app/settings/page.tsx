@@ -243,7 +243,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
+        <h1 className="mb-2">Settings</h1>
         <p className="text-muted-foreground">
           Manage your account and preferences.
         </p>
@@ -306,8 +306,8 @@ export default function SettingsPage() {
         className="card p-6 mb-6"
       >
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
-            <Palette className="w-6 h-6 text-purple-500" />
+          <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+            <Palette className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
             <h2 className="text-lg font-semibold">Preferences</h2>
@@ -383,8 +383,8 @@ export default function SettingsPage() {
         className="card p-6 mb-6"
       >
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center">
-            <Bell className="w-6 h-6 text-amber-500" />
+          <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+            <Bell className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
             <h2 className="text-lg font-semibold">Notifications</h2>
@@ -421,8 +421,8 @@ export default function SettingsPage() {
         className="card p-6 mb-6"
       >
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
-            <Shield className="w-6 h-6 text-green-500" />
+          <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+            <Shield className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
             <h2 className="text-lg font-semibold">Data & Privacy</h2>

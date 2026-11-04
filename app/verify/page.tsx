@@ -10,7 +10,6 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  Shield,
   ArrowRight,
   RefreshCw,
   Mail,
@@ -106,16 +105,8 @@ function VerifyContent() {
             >
               {/* Loading Animation */}
               <div className="flex justify-center">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full border-4 border-primary/20" />
-                  <motion.div
-                    className="absolute inset-0 w-20 h-20 rounded-full border-4 border-transparent border-t-primary"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Shield className="w-8 h-8 text-primary" />
-                  </div>
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-border bg-secondary">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
               </div>
 
@@ -297,12 +288,8 @@ function LoadingFallback() {
 
       <div className="card p-8">
         <div className="flex justify-center mb-6">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-primary/20" />
-            <div className="absolute inset-0 w-20 h-20 rounded-full border-4 border-transparent border-t-primary animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Shield className="w-8 h-8 text-primary" />
-            </div>
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-border bg-secondary">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
         </div>
         <div className="text-center">

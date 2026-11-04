@@ -12,14 +12,14 @@ import {
   Shield,
   Zap,
   Clock,
-  Sparkles
+  BadgeCheck
 } from 'lucide-react';
 
 const benefits = [
   { icon: Shield, text: 'Your data stays private' },
   { icon: Zap, text: '5 STT engines to choose from' },
   { icon: Clock, text: '500 free minutes/month' },
-  { icon: Sparkles, text: 'No credit card required' },
+  { icon: BadgeCheck, text: 'No credit card required' },
 ];
 
 export default function LoginPage() {
@@ -57,13 +57,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Panel - Benefits (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-12 flex-col justify-between">
+      <div className="hidden lg:flex lg:w-1/2 bg-secondary/50 p-12 flex-col justify-between">
         <div>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Mic className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <Mic className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">Verbatim</span>
+            <span className="text-xl font-semibold">Verbatim</span>
           </Link>
         </div>
 
@@ -73,9 +73,8 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="text-3xl font-bold mb-4">
-              Transcribe with
-              <span className="gradient-text"> complete privacy</span>
+            <h2 className="studio-heading mb-4">
+              Transcribe with complete privacy.
             </h2>
             <p className="text-muted-foreground text-lg mb-8">
               Join thousands of creators and developers who trust Verbatim for accurate, private transcription.
@@ -123,14 +122,14 @@ export default function LoginPage() {
         >
           {/* Logo (mobile only) */}
           <div className="text-center mb-8 lg:hidden">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Mic className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Mic className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
 
           {/* Header */}
           <div className="text-center lg:text-left mb-8">
-            <h1 className="text-2xl font-bold">Sign in to Verbatim</h1>
+            <h1 className="text-2xl font-semibold">Sign in to Verbatim</h1>
             <p className="text-muted-foreground mt-2">
               Enter your email to receive a magic link
             </p>

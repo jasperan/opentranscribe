@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Mic,
-  Sparkles,
+  SpellCheck,
   Clock,
   FileText,
   CheckCircle,
@@ -62,7 +62,7 @@ export default function LivePage() {
             <Mic className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Live Transcription</h1>
+            <h1>Live transcription</h1>
             <p className="text-muted-foreground">
               Real-time speech-to-text powered by faster-whisper
             </p>
@@ -78,7 +78,7 @@ export default function LivePage() {
       {/* Features highlight */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-          <Sparkles className="w-5 h-5 text-primary" />
+          <SpellCheck className="w-5 h-5 text-primary" />
           <div>
             <div className="text-sm font-medium">Auto-correcting</div>
             <div className="text-xs text-muted-foreground">Text improves as you speak</div>
@@ -114,7 +114,7 @@ export default function LivePage() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg shadow-lg"
+          className="fixed bottom-4 right-4 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
         >
           <CheckCircle className="w-4 h-4" />
           Transcription saved

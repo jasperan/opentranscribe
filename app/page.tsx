@@ -124,7 +124,7 @@ const pricingTiers = [
 function LogoMark({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <Mic className="h-5 w-5" />
       </div>
       {!compact && <span className="text-xl font-semibold tracking-tight">Verbatim</span>}
@@ -151,7 +151,7 @@ export default function LandingPage() {
 
   return (
     <div className="studio-landing min-h-[100dvh] bg-background">
-      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-background/82 backdrop-blur-xl">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" aria-label="Verbatim home">
             <LogoMark />
@@ -174,7 +174,7 @@ export default function LandingPage() {
               Sign in
             </Link>
             <Link href="/login" className="btn-primary inline-flex items-center gap-2 text-sm">
-              Start
+              Start free
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -197,9 +197,9 @@ export default function LandingPage() {
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
               className="min-w-0 max-w-2xl"
             >
-              <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-sm font-medium text-primary">
+              <div className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <Shield className="h-4 w-4" />
-                YOUR WORDS, IN GOOD HANDS
+                Runs on your own server
               </div>
 
               <h1 className="studio-title">
@@ -239,7 +239,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
               <div>
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-secondary">
                   <Server className="h-5 w-5 text-primary" />
                 </div>
                 <h2 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">
@@ -334,7 +334,7 @@ export default function LandingPage() {
                   Every tier keeps the same core workflow. Upgrade when volume, speed, or support expectations increase.
                 </p>
               </div>
-              <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+              <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
                 Speaker diarization is available on all tiers for 2x minute usage.
               </div>
             </div>
@@ -347,10 +347,10 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45, delay: index * 0.06 }}
                   viewport={{ once: true }}
-                  className={`card flex flex-col p-6 ${tier.highlighted ? 'border-primary/60 bg-primary/5' : ''}`}
+                  className={`card flex flex-col p-6 ${tier.highlighted ? 'border-primary/30 bg-primary/5' : ''}`}
                 >
                   {tier.highlighted && (
-                    <div className="mb-3 w-fit rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                    <div className="mb-3 w-fit rounded-sm bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                       Most selected
                     </div>
                   )}
@@ -359,7 +359,7 @@ export default function LandingPage() {
                     <span className="font-mono text-4xl font-semibold tracking-tight">{tier.price}</span>
                     <span className="text-muted-foreground">{tier.period}</span>
                   </div>
-                  <div className="mt-3 text-sm font-medium text-primary">{tier.minutes}</div>
+                  <div className="mt-3 text-sm text-muted-foreground">{tier.minutes}</div>
                   <ul className="mt-7 flex-1 space-y-3">
                     {tier.features.map((feature) => (
                       <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -384,8 +384,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="px-4 pb-20 sm:px-6 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-6 rounded-[2rem] border border-border bg-card p-6 md:grid-cols-[1fr_auto] md:items-center md:p-8">
+        <section className="px-4 pb-20 pt-20 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-6 rounded-xl border border-border bg-card p-6 md:grid-cols-[1fr_auto] md:items-center md:p-8">
             <div>
               <div className="mb-4 flex items-center gap-2 text-sm font-medium text-primary">
                 <Activity className="h-4 w-4" />

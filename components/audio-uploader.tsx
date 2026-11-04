@@ -158,7 +158,7 @@ export default function AudioUploader({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5"
+              className="absolute inset-0 bg-primary/5"
             />
           )}
         </AnimatePresence>
@@ -240,7 +240,7 @@ export default function AudioUploader({
             {ACCEPTED_EXTENSIONS.map((ext) => (
               <span
                 key={ext}
-                className="px-3 py-1.5 bg-secondary/80 rounded-full text-xs font-medium uppercase tracking-wider"
+                className="rounded-sm bg-secondary px-2.5 py-1 text-xs text-muted-foreground"
               >
                 {ext.replace('.', '')}
               </span>
