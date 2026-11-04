@@ -34,9 +34,15 @@ const icons = {
 };
 
 const styles = {
-  success: 'bg-green-500/10 border-green-500/20 text-green-400',
-  error: 'bg-destructive/10 border-destructive/20 text-destructive',
-  info: 'bg-primary/10 border-primary/20 text-primary',
+  success: 'bg-card border-border text-foreground',
+  error: 'bg-card border-destructive/40 text-foreground',
+  info: 'bg-card border-border text-foreground',
+};
+
+const iconStyles = {
+  success: 'text-green-600 dark:text-green-400',
+  error: 'text-destructive',
+  info: 'text-primary',
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -89,9 +95,9 @@ function ToastItem({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 100, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-lg shadow-lg ${styles[toast.type]}`}
+      className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg ${styles[toast.type]}`}
     >
-      <Icon className="w-5 h-5 flex-shrink-0" />
+      <Icon className={`w-5 h-5 flex-shrink-0 ${iconStyles[toast.type]}`} />
       <p className="text-sm flex-1">{toast.message}</p>
       <button
         onClick={() => onRemove(toast.id)}

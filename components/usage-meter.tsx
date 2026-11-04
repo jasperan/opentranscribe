@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, AlertTriangle, Sparkles } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface UsageData {
@@ -145,7 +145,7 @@ export default function UsageMeter() {
             href="/pricing"
             className="flex items-center gap-2 text-xs text-primary hover:underline group"
           >
-            <Sparkles className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+            <ArrowUpRight className="w-3.5 h-3.5" />
             Upgrade for more minutes
           </Link>
         </motion.div>

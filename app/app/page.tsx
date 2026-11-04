@@ -10,7 +10,7 @@ import {
   RotateCcw,
   FileAudio,
   Clock,
-  Sparkles,
+  AudioLines,
   Share2,
   Check,
   Radio,
@@ -49,7 +49,7 @@ interface TranscriptionResult {
 
 const workflowSteps = [
   { label: 'Upload', icon: UploadCloud },
-  { label: 'Transcribe', icon: Sparkles },
+  { label: 'Transcribe', icon: AudioLines },
   { label: 'Review', icon: FileText },
   { label: 'Export', icon: Download },
 ];
@@ -85,7 +85,7 @@ function ModeButton({
       onClick={onClick}
       role="radio"
       aria-checked={active}
-      className={`relative rounded-2xl border p-4 text-left transition-all active:scale-[0.99] ${
+      className={`relative rounded-xl border p-4 text-left transition-colors active:scale-[0.99] ${
         active
           ? 'border-primary/55 bg-primary/10 text-foreground'
           : 'border-border bg-card hover:border-primary/30 hover:bg-accent/50'
@@ -94,7 +94,7 @@ function ModeButton({
       {active && (
         <motion.span
           layoutId="mode-active-ring"
-          className="absolute inset-0 rounded-2xl ring-1 ring-primary/40"
+          className="absolute inset-0 rounded-xl ring-1 ring-primary/40"
           transition={{ type: 'spring', stiffness: 320, damping: 28 }}
         />
       )}
@@ -119,7 +119,7 @@ function DiarizationSwitch({
   onToggle: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-background/70 p-4">
+    <div className="rounded-xl border border-border bg-secondary/40 p-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -169,13 +169,8 @@ function ProcessingState({
     >
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex items-center justify-center">
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-primary/25 bg-primary/10">
-            <motion.div
-              className="absolute inset-2 rounded-[1.25rem] border border-primary/25"
-              animate={{ scale: [1, 1.08, 1], opacity: [0.65, 0.2, 0.65] }}
-              transition={{ repeat: Infinity, duration: 1.7, ease: 'easeInOut' }}
-            />
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-border bg-secondary">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </div>
 
@@ -188,7 +183,7 @@ function ProcessingState({
           </p>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-border bg-background/70 p-4">
+        <div className="mt-8 rounded-xl border border-border bg-secondary/40 p-4">
           <div className="mb-3 flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{status === 'uploading' ? 'Transfer progress' : 'Model progress'}</span>
             <span className="font-mono font-semibold text-primary">{progress}</span>
@@ -318,25 +313,21 @@ export default function AppPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8 grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
+      <div className="mb-8">
         <div>
           <div className="mb-3 flex items-center gap-2 text-sm font-medium text-primary">
             <Activity className="h-4 w-4" />
             Transcription desk
           </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-balance">
-            Convert audio into a reviewable transcript.
-          </h1>
+          <h1 className="text-balance">Convert audio into a reviewable transcript.</h1>
           <p className="mt-3 max-w-[64ch] leading-relaxed text-muted-foreground">
             Upload a file or record live audio, then review timestamps, speakers, and exports from the same workspace.
           </p>
         </div>
-
-        <UsageMeter />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="card overflow-hidden rounded-[1.5rem]">
+        <section className="card overflow-hidden">
           <div className="border-b border-border bg-card px-5 py-4 sm:px-6">
             <div
               className="grid gap-3 sm:grid-cols-2"
@@ -393,7 +384,7 @@ export default function AppPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <div className="flex flex-col gap-4 rounded-2xl border border-primary/25 bg-primary/5 p-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-4 rounded-xl border border-primary/25 bg-primary/5 p-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                       <CheckCircle className="h-6 w-6" />
@@ -409,7 +400,7 @@ export default function AppPage() {
                           <Clock className="h-3.5 w-3.5" />
                           {formatDuration(result.duration)}
                         </span>
-                        <span className="rounded-full bg-background px-2.5 py-1 font-mono text-xs text-primary">
+                        <span className="font-mono text-xs text-muted-foreground">
                           {result.minutesCharged} min charged
                         </span>
                       </div>
@@ -475,6 +466,8 @@ export default function AppPage() {
         </section>
 
         <aside className="space-y-6">
+          <UsageMeter />
+
           <div className="card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold">Workflow state</h2>
@@ -538,8 +531,8 @@ export default function AppPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-5">
-            <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+          <div className="rounded-xl border border-border bg-secondary/40 p-5">
+            <div className="flex items-center gap-2 text-sm font-semibold">
               <Radio className="h-4 w-4" />
               Live mode
             </div>

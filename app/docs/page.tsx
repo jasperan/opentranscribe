@@ -20,7 +20,6 @@ import {
   Terminal,
   Gauge,
   ExternalLink,
-  Sparkles,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -36,7 +35,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-3 right-3 p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-white/10"
+      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-sm hover:bg-secondary"
       title="Copy to clipboard"
     >
       {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
@@ -46,16 +45,13 @@ function CopyButton({ text }: { text: string }) {
 
 function CodeBlock({ code, language = 'bash' }: { code: string; language?: string }) {
   return (
-    <div className="relative bg-[#1a1a2e] rounded-xl overflow-hidden border border-border/50">
-      <div className="absolute top-0 left-0 right-0 h-8 bg-[#252540] flex items-center px-3 gap-1.5">
-        <div className="w-3 h-3 rounded-full bg-red-500/60" />
-        <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
-        <div className="w-3 h-3 rounded-full bg-green-500/60" />
-        <span className="ml-3 text-xs text-muted-foreground font-mono">{language}</span>
+    <div className="overflow-hidden rounded-xl border border-border bg-secondary/50">
+      <div className="flex items-center justify-between border-b border-border px-3 py-1.5">
+        <span className="font-mono text-xs text-muted-foreground">{language}</span>
+        <CopyButton text={code} />
       </div>
-      <CopyButton text={code} />
-      <pre className="p-4 pt-10 overflow-x-auto text-sm">
-        <code className="text-gray-300">{code}</code>
+      <pre className="overflow-x-auto p-4 text-sm">
+        <code className="text-foreground">{code}</code>
       </pre>
     </div>
   );
@@ -153,7 +149,7 @@ const models = [
     speed: 'Fast',
     accuracy: 'High',
     badge: 'Recommended',
-    badgeColor: 'bg-green-500/10 text-green-400 border-green-500/20',
+    badgeColor: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
   },
   {
     id: 'openai-whisper',
@@ -226,14 +222,14 @@ export default function DocsPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-border bg-background sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Mic className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold">Verbatim</span>
+              <span className="text-xl font-semibold">Verbatim</span>
             </Link>
 
             <div className="flex items-center gap-4">
@@ -309,7 +305,6 @@ export default function DocsPage() {
                     href="/pricing"
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <Sparkles className="w-4 h-4" />
                     View Pricing
                     <ExternalLink className="w-3 h-3" />
                   </Link>
@@ -495,17 +490,17 @@ export default function DocsPage() {
                       <div className="p-6 border-b border-border">
                         <div className="flex items-center gap-3 mb-2">
                           <span
-                            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold ${
+                            className={`rounded-sm px-2 py-1 font-mono text-xs font-medium ${
                               endpoint.method === 'GET'
-                                ? 'bg-green-500/20 text-green-400'
-                                : 'bg-blue-500/20 text-blue-400'
+                                ? 'bg-green-500/20 text-green-700 dark:text-green-400'
+                                : 'bg-blue-500/20 text-blue-700 dark:text-blue-400'
                             }`}
                           >
                             {endpoint.method}
                           </span>
                           <code className="text-lg font-mono">{endpoint.path}</code>
                           {endpoint.auth && (
-                            <span className="px-2 py-1 rounded-lg text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/20">
+                            <span className="rounded-sm border border-yellow-500/20 bg-yellow-500/20 px-2 py-1 text-xs text-yellow-800 dark:text-yellow-400">
                               Auth Required
                             </span>
                           )}
@@ -515,7 +510,7 @@ export default function DocsPage() {
 
                       {endpoint.params.length > 0 && (
                         <div className="p-6 border-b border-border bg-secondary/30">
-                          <h4 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">Parameters</h4>
+                          <h4 className="mb-3 text-sm font-medium text-muted-foreground">Parameters</h4>
                           <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
@@ -548,7 +543,7 @@ export default function DocsPage() {
                       )}
 
                       <div className="p-6">
-                        <h4 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">Response</h4>
+                        <h4 className="mb-3 text-sm font-medium text-muted-foreground">Response</h4>
                         <CodeBlock code={endpoint.response} language="json" />
                       </div>
                     </motion.div>

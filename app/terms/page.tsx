@@ -46,7 +46,7 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-border bg-background sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function TermsPage() {
             className="hidden lg:block"
           >
             <div className="sticky top-24">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              <h2 className="mb-4 text-sm font-medium text-muted-foreground">
                 On this page
               </h2>
               <nav className="space-y-1">
@@ -126,7 +126,7 @@ export default function TermsPage() {
 
               {/* Quick Links */}
               <div className="mt-8 pt-8 border-t border-border">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                <h2 className="mb-4 text-sm font-medium text-muted-foreground">
                   Related
                 </h2>
                 <div className="space-y-2">

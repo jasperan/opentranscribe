@@ -11,9 +11,10 @@ import {
   Loader2,
   ArrowUpRight,
   ArrowDownRight,
-  Sparkles,
+  Gauge,
   CreditCard,
   CheckCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -136,20 +137,20 @@ export default function UsagePage() {
     },
     creator: {
       name: 'Creator',
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10',
+      color: 'text-foreground',
+      bgColor: 'bg-secondary',
       features: ['3,000 minutes/month', 'High quality', 'Priority support', 'API access']
     },
     pro: {
       name: 'Pro',
-      color: 'text-purple-400',
-      bgColor: 'bg-purple-500/10',
+      color: 'text-foreground',
+      bgColor: 'bg-secondary',
       features: ['10,000 minutes/month', 'Highest quality', '24/7 support', 'Full API access', 'Custom models']
     },
     unlimited: {
       name: 'Unlimited',
-      color: 'text-amber-400',
-      bgColor: 'bg-amber-500/10',
+      color: 'text-foreground',
+      bgColor: 'bg-secondary',
       features: ['Unlimited minutes', 'Highest quality', 'Dedicated support', 'Full API access', 'Custom models', 'SLA']
     },
   };
@@ -169,7 +170,7 @@ export default function UsagePage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Usage & Billing</h1>
+        <h1 className="mb-2">Usage & billing</h1>
         <p className="text-muted-foreground">
           Monitor your transcription usage and manage your plan.
         </p>
@@ -184,12 +185,12 @@ export default function UsagePage() {
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-12 h-12 ${currentTier.bgColor} rounded-xl flex items-center justify-center`}>
-                <Sparkles className={`w-6 h-6 ${currentTier.color}`} />
+              <div className={`w-10 h-10 ${currentTier.bgColor} rounded-lg flex items-center justify-center`}>
+                <Gauge className={`w-5 h-5 ${currentTier.color}`} />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Current Plan</p>
-                <h2 className={`text-2xl font-bold ${currentTier.color}`}>
+                <h2 className={`text-2xl font-semibold ${currentTier.color}`}>
                   {currentTier.name}
                 </h2>
               </div>
@@ -199,7 +200,7 @@ export default function UsagePage() {
             <div className="grid grid-cols-2 gap-2 mb-4">
               {currentTier.features.slice(0, 4).map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-muted-foreground" />
                   {feature}
                 </div>
               ))}
@@ -239,7 +240,8 @@ export default function UsagePage() {
           <div className="flex items-center justify-between mt-2">
             {usage?.limit !== -1 ? (
               <p className={`text-sm ${isLowOnMinutes ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                {isLowOnMinutes && '⚠️ '}{formatMinutes((usage?.limit || 500) - (usage?.used || 0))} remaining
+                {isLowOnMinutes && <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />}
+                {formatMinutes((usage?.limit || 500) - (usage?.used || 0))} remaining
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">Unlimited usage</p>
@@ -260,16 +262,13 @@ export default function UsagePage() {
           className="card p-5"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 text-primary" />
             </div>
-            <span className="flex items-center gap-1 text-xs text-green-500">
-              <ArrowUpRight className="w-3 h-3" />
-              This month
-            </span>
+            <span className="text-xs text-muted-foreground">This month</span>
           </div>
           <p className="text-sm text-muted-foreground mb-1">Total Minutes</p>
-          <p className="text-3xl font-bold">{formatMinutes(usage?.used || 0)}</p>
+          <p className="font-mono text-2xl font-medium tnum">{formatMinutes(usage?.used || 0)}</p>
         </motion.div>
 
         <motion.div
@@ -279,12 +278,12 @@ export default function UsagePage() {
           className="card p-5"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-green-500" />
+            <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-muted-foreground" />
             </div>
           </div>
           <p className="text-sm text-muted-foreground mb-1">Transcriptions</p>
-          <p className="text-3xl font-bold">{usage?.transcriptionCount || 0}</p>
+          <p className="font-mono text-2xl font-medium tnum">{usage?.transcriptionCount || 0}</p>
         </motion.div>
 
         <motion.div
@@ -294,12 +293,12 @@ export default function UsagePage() {
           className="card p-5"
         >
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
-              <Zap className="w-5 h-5 text-purple-500" />
+            <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+              <Zap className="w-5 h-5 text-muted-foreground" />
             </div>
           </div>
           <p className="text-sm text-muted-foreground mb-1">API Calls</p>
-          <p className="text-3xl font-bold">{usage?.apiCalls || 0}</p>
+          <p className="font-mono text-2xl font-medium tnum">{usage?.apiCalls || 0}</p>
         </motion.div>
       </div>
 

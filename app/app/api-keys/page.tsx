@@ -133,7 +133,7 @@ export default function ApiKeysPage() {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">API Keys</h1>
+        <h1 className="mb-2">API keys</h1>
         <p className="text-muted-foreground">
           Manage API keys for programmatic access to Verbatim.
         </p>
@@ -150,27 +150,27 @@ export default function ApiKeysPage() {
             <Key className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-2xl font-bold">{apiKeys.length}</p>
+            <p className="font-mono text-2xl font-medium tnum">{apiKeys.length}</p>
             <p className="text-sm text-muted-foreground">Active Keys</p>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
-            <Activity className="w-6 h-6 text-green-500" />
+          <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+            <Activity className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-2xl font-bold">
+            <p className="font-mono text-2xl font-medium tnum">
               {apiKeys.filter(k => k.lastUsed).length}
             </p>
             <p className="text-sm text-muted-foreground">Keys Used</p>
           </div>
         </div>
         <div className="card p-4 flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
-            <Shield className="w-6 h-6 text-blue-500" />
+          <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+            <Shield className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <p className="text-2xl font-bold">256-bit</p>
+            <p className="font-mono text-2xl font-medium tnum">256-bit</p>
             <p className="text-sm text-muted-foreground">Encryption</p>
           </div>
         </div>
@@ -366,8 +366,8 @@ export default function ApiKeysPage() {
           className="card p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-              <ExternalLink className="w-5 h-5 text-blue-500" />
+            <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
+              <ExternalLink className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
               <p className="font-medium group-hover:text-primary transition-colors">

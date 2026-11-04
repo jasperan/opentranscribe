@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Tag,
   TrendingUp,
-  Sparkles,
   BookOpen,
 } from 'lucide-react';
 
@@ -22,7 +21,7 @@ const posts = [
     readTime: '5 min read',
     slug: 'introducing-verbatim',
     tag: 'Announcement',
-    tagColor: 'bg-blue-500/10 text-blue-400',
+    tagColor: 'bg-secondary text-muted-foreground',
     featured: true,
   },
   {
@@ -32,7 +31,7 @@ const posts = [
     readTime: '8 min read',
     slug: 'comparing-stt-engines',
     tag: 'Technical',
-    tagColor: 'bg-purple-500/10 text-purple-400',
+    tagColor: 'bg-secondary text-muted-foreground',
     featured: false,
   },
   {
@@ -42,7 +41,7 @@ const posts = [
     readTime: '4 min read',
     slug: 'transcription-best-practices',
     tag: 'Tutorial',
-    tagColor: 'bg-green-500/10 text-green-400',
+    tagColor: 'bg-secondary text-muted-foreground',
     featured: false,
   },
   {
@@ -52,7 +51,7 @@ const posts = [
     readTime: '6 min read',
     slug: 'speaker-diarization',
     tag: 'Feature',
-    tagColor: 'bg-amber-500/10 text-amber-400',
+    tagColor: 'bg-secondary text-muted-foreground',
     featured: false,
   },
 ];
@@ -72,14 +71,14 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-border bg-background sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Mic className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold">Verbatim</span>
+              <span className="text-xl font-semibold">Verbatim</span>
             </Link>
 
             <div className="flex items-center gap-4">
@@ -133,10 +132,10 @@ export default function BlogPage() {
                   animate={{ opacity: 1, y: 0 }}
                   className="card overflow-hidden group cursor-pointer"
                 >
-                  <div className="relative h-48 bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center">
+                  <div className="relative h-48 bg-secondary flex items-center justify-center">
                     <div className="absolute top-4 left-4">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-white text-xs font-medium rounded-full">
-                        <Sparkles className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-sm">
+                        <FileText className="w-3 h-3" />
                         Featured
                       </span>
                     </div>
@@ -144,7 +143,7 @@ export default function BlogPage() {
                   </div>
                   <div className="p-6">
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${featuredPost.tagColor}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium ${featuredPost.tagColor}`}>
                         <Tag className="w-3 h-3" />
                         {featuredPost.tag}
                       </span>
@@ -185,7 +184,7 @@ export default function BlogPage() {
                     className="card p-6 group cursor-pointer hover:border-primary/50 transition-all"
                   >
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${post.tagColor}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium ${post.tagColor}`}>
                         <Tag className="w-3 h-3" />
                         {post.tag}
                       </span>
@@ -252,7 +251,7 @@ export default function BlogPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="card p-6 bg-gradient-to-br from-primary/10 via-primary/5 to-background"
+              className="card p-6 bg-secondary/60"
             >
               <h3 className="font-semibold mb-2">Stay Updated</h3>
               <p className="text-sm text-muted-foreground mb-4">

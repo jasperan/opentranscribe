@@ -3,57 +3,57 @@
 @tailwind utilities;
 
 /* ========================================
-   DESIGN TOKENS - "Transcript Desk"
-   Neutral surfaces with a single teal accent.
+   DESIGN TOKENS - "Verbatim"
+   Warm paper, ferrous tape, oxide-red ink.
    ======================================== */
 
 /* Light theme */
 :root {
   color-scheme: light;
-  --color-background: 247 248 246;
-  --color-foreground: 20 24 24;
-  --color-card: 255 255 255;
-  --color-card-foreground: 20 24 24;
-  --color-popover: 255 255 255;
-  --color-popover-foreground: 20 24 24;
-  --color-primary: 15 118 110;
-  --color-primary-foreground: 255 255 255;
-  --color-secondary: 232 238 235;
-  --color-secondary-foreground: 20 24 24;
-  --color-muted: 232 238 235;
-  --color-muted-foreground: 96 107 105;
-  --color-accent: 224 237 233;
-  --color-accent-foreground: 20 24 24;
-  --color-destructive: 220 38 38;
-  --color-destructive-foreground: 255 255 255;
-  --color-border: 213 222 218;
-  --color-input: 213 222 218;
-  --color-ring: 15 118 110;
-  --shadow-color: 20 24 24;
+  --color-background: 247 243 235;
+  --color-foreground: 48 42 37;
+  --color-card: 255 252 246;
+  --color-card-foreground: 48 42 37;
+  --color-popover: 255 252 246;
+  --color-popover-foreground: 48 42 37;
+  --color-primary: 161 68 42;
+  --color-primary-foreground: 255 250 241;
+  --color-secondary: 235 226 215;
+  --color-secondary-foreground: 48 42 37;
+  --color-muted: 235 226 215;
+  --color-muted-foreground: 115 102 89;
+  --color-accent: 239 221 207;
+  --color-accent-foreground: 48 42 37;
+  --color-destructive: 180 55 42;
+  --color-destructive-foreground: 255 250 241;
+  --color-border: 216 206 192;
+  --color-input: 216 206 192;
+  --color-ring: 161 68 42;
+  --shadow-color: 48 42 37;
 }
 
 /* Dark theme */
 .dark {
   color-scheme: dark;
-  --color-background: 9 15 15;
-  --color-foreground: 241 245 244;
-  --color-card: 17 25 25;
-  --color-card-foreground: 241 245 244;
-  --color-popover: 17 25 25;
-  --color-popover-foreground: 241 245 244;
-  --color-primary: 45 212 191;
-  --color-primary-foreground: 8 20 20;
-  --color-secondary: 25 37 36;
-  --color-secondary-foreground: 241 245 244;
-  --color-muted: 25 37 36;
-  --color-muted-foreground: 148 163 160;
-  --color-accent: 28 49 47;
-  --color-accent-foreground: 241 245 244;
-  --color-destructive: 239 68 68;
-  --color-destructive-foreground: 255 255 255;
-  --color-border: 40 58 56;
-  --color-input: 40 58 56;
-  --color-ring: 45 212 191;
+  --color-background: 25 24 23;
+  --color-foreground: 244 234 219;
+  --color-card: 34 32 30;
+  --color-card-foreground: 244 234 219;
+  --color-popover: 34 32 30;
+  --color-popover-foreground: 244 234 219;
+  --color-primary: 239 176 140;
+  --color-primary-foreground: 42 31 25;
+  --color-secondary: 47 43 39;
+  --color-secondary-foreground: 244 234 219;
+  --color-muted: 47 43 39;
+  --color-muted-foreground: 182 167 151;
+  --color-accent: 66 48 39;
+  --color-accent-foreground: 244 234 219;
+  --color-destructive: 226 118 100;
+  --color-destructive-foreground: 42 31 25;
+  --color-border: 70 61 52;
+  --color-input: 70 61 52;
+  --color-ring: 239 176 140;
   --shadow-color: 0 0 0;
 }
 
@@ -92,16 +92,6 @@
 }
 
 @layer components {
-  /* Glass panel effect */
-  .glass-panel {
-    @apply bg-card/85 backdrop-blur-xl border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)];
-  }
-
-  /* Accent text */
-  .gradient-text {
-    @apply text-primary;
-  }
-
   /* Button variants */
   .btn-primary {
     @apply bg-primary text-primary-foreground hover:bg-primary/90
@@ -134,12 +124,7 @@
   /* Card styles */
   .card {
     @apply rounded-xl border border-border bg-card text-card-foreground
-           transition-all duration-200;
-    box-shadow: 0 18px 40px -28px rgb(var(--shadow-color) / 0.35);
-  }
-
-  .card:hover {
-    border-color: rgb(var(--color-primary) / 0.22);
+           transition-colors duration-200;
   }
 
   .card-header {
