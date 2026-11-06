@@ -79,14 +79,16 @@ export function verifyMagicLink(
 
 export function countRecentMagicLinks(email: string, hours: number): number {
   const db = getDb();
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
+  // created_at defaults to SQLite datetime('now') ('YYYY-MM-DD HH:MM:SS', UTC),
+  // so the lower bound must use the same text format; an ISO-8601 'T' bound
+  // sorts above every same-day row and made the count always 0.
   const result = db
     .prepare(
       `SELECT COUNT(*) as count FROM magic_links
-       WHERE email = ? AND created_at > ?`
+       WHERE email = ? AND created_at > datetime('now', ?)`
     )
-    .get(email.toLowerCase(), since) as { count: number };
+    .get(email.toLowerCase(), `-${hours} hours`) as { count: number };
 
   return result.count;
 }
